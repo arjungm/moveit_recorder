@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     //connect to the DB
     moveit_warehouse::PlanningSceneStorage pss( vm.count("host") ? vm["host"].as<std::string>() : "",
                                                 vm.count("port") ? vm["port"].as<std::size_t>() : 0);
-
+    
     //ask the warehouse for the scene
     std::vector<std::string> ps_names;
     pss.getPlanningSceneNames( ps_names );
@@ -57,8 +57,6 @@ int main(int argc, char** argv)
       ps_pub.publish(static_cast<const moveit_msgs::PlanningScene&>(*pswm));
     }
 
-
-
     //ask the warehouse for a trajectory
 
     //visualize the trajectory
@@ -72,11 +70,10 @@ int main(int argc, char** argv)
         << std::endl << ex.what());
   }
 
-  ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
-  moveit_msgs::DisplayTrajectory display_trajectory;
+  //ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
+  //moveit_msgs::DisplayTrajectory display_trajectory;
 
-
-  
-
+  ROS_INFO("Successfully performed trajectory playback");
+  ros::shutdown();
   return 0;
 }
