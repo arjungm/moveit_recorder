@@ -2,6 +2,7 @@
 
 #include <moveit/move_group_interface/move_group.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/planning_scene/planning_scene.h>
 
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/DisplayTrajectory.h>
@@ -43,7 +44,11 @@ int main(int argc, char** argv)
     moveit_warehouse::PlanningSceneStorage pss(host, port);
 
     ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
-    
+
+
+    ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
+    moveit_msgs::DisplayTrajectory display_trajectory;
+
     //ask the warehouse for the scene
     std::vector<std::string> ps_names;
     pss.getPlanningSceneNames( ps_names );
@@ -54,16 +59,38 @@ int main(int argc, char** argv)
     {
       moveit_warehouse::PlanningSceneWithMetadata pswm;
       pss.getPlanningScene(pswm, *scene);
-      
+
       // visualize the scene
       // apparently with metadata it extends it
-      ps_pub.publish(static_cast<const moveit_msgs::PlanningScene&>(*pswm));
+      moveit_msgs::PlanningScene ps_msg = static_cast<const moveit_msgs::PlanningScene&>(*pswm);
+      ps_pub.publish(ps_msg);
+
+      //get query list
+      std::vector<std::string> pq_names;
+      pss.getPlanningQueriesNames( pq_names, *scene);
+
+      std::string first_query = pq_names[0];
+
+      //get trajectory list
+      std::vector<moveit_warehouse::RobotTrajectoryWithMetadata> planning_results;
+      pss.getPlanningResults(planning_results, *scene, first_query);
+
+      ROS_INFO("Loaded %d trajectories", (int)planning_results.size());
+      
+      //animate the first trajectory
+      moveit_msgs::RobotTrajectory rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[0]));
+
+      //get the start point
+      moveit_warehouse::MotionPlanRequestWithMetadata planning_query;
+      pss.getPlanningQuery(planning_query, *scene, first_query);
+      moveit_msgs::MotionPlanRequest mpr = static_cast<const moveit_msgs::MotionPlanRequest&>(*planning_query);
+      
+      //publish
+      display_trajectory.trajectory_start = mpr.start_state;
+      display_trajectory.trajectory.push_back(rt_msg);
+      display_publisher.publish(display_trajectory);
+      sleep(5.0);
     }
-
-    //ask the warehouse for a trajectory
-
-    //visualize the trajectory
-
 
     //std::vector<std::string> files = boost::program_options::collect_unrecognized(po.options, boost::program_options::include_positional);
   }
@@ -73,8 +100,6 @@ int main(int argc, char** argv)
         << std::endl << ex.what());
   }
 
-  //ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
-  //moveit_msgs::DisplayTrajectory display_trajectory;
 
   ROS_INFO("Successfully performed trajectory playback");
   ros::shutdown();
