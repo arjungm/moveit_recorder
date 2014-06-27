@@ -6,8 +6,9 @@ project(moveit_recorder)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   moveit_core
-  moveit_ros
-  moveit_warehouse
+  moveit_ros_warehouse
+  moveit_ros_planning_interface
+  moveit_ros_move_group
   roscpp
   rviz
 )
@@ -105,16 +106,14 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-# add_executable(moveit_recorder_node src/moveit_recorder_node.cpp)
+add_executable(playback_node src/playback.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(moveit_recorder_node moveit_recorder_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(moveit_recorder_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(playback_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##
