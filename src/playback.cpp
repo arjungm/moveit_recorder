@@ -71,11 +71,13 @@ int main(int argc, char** argv)
 
       std::string first_query = pq_names[0];
 
+      ROS_INFO("%d available queries", (int)pq_names.size());
+
       //get trajectory list
       std::vector<moveit_warehouse::RobotTrajectoryWithMetadata> planning_results;
       pss.getPlanningResults(planning_results, *scene, first_query);
 
-      ROS_INFO("Loaded %d trajectories", (int)planning_results.size());
+      ROS_INFO("Loaded %d trajectories for query %s", (int)planning_results.size(), first_query.c_str());
       
       //animate the first trajectory
       moveit_msgs::RobotTrajectory rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[0]));
