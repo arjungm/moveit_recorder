@@ -38,8 +38,11 @@ int main(int argc, char** argv)
   try
   {
     //connect to the DB
-    moveit_warehouse::PlanningSceneStorage pss( vm.count("host") ? vm["host"].as<std::string>() : "",
-                                                vm.count("port") ? vm["port"].as<std::size_t>() : 0);
+    std::string host = vm.count("host") ? vm["host"].as<std::string>() : "";
+    size_t port = vm.count("port") ? vm["port"].as<std::size_t>() : 0;
+    moveit_warehouse::PlanningSceneStorage pss(host, port);
+
+    ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
     
     //ask the warehouse for the scene
     std::vector<std::string> ps_names;
