@@ -69,7 +69,12 @@ int main(int argc, char** argv)
       std::vector<std::string> pq_names;
       pss.getPlanningQueriesNames( pq_names, *scene);
 
-      std::string first_query = pq_names[0];
+      std::string first_query = pq_names.at(0);
+
+      std::cout << pq_names.at(0) << std::endl;
+      std::cout << pq_names.at(1) << std::endl;
+      std::cout << pq_names.at(2) << std::endl;
+
 
       ROS_INFO("%d available queries", (int)pq_names.size());
 
@@ -78,6 +83,8 @@ int main(int argc, char** argv)
       pss.getPlanningResults(planning_results, *scene, first_query);
 
       ROS_INFO("Loaded %d trajectories for query %s", (int)planning_results.size(), first_query.c_str());
+
+      //TODO WHY IS THIS NOT LOADING TRAJECTORIES?
       
       //animate the first trajectory
       moveit_msgs::RobotTrajectory rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[0]));
