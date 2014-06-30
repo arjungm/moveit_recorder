@@ -8,6 +8,7 @@
 #include <moveit_msgs/DisplayTrajectory.h>
 
 #include <moveit/warehouse/planning_scene_storage.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 #include <boost/program_options.hpp>
 
@@ -45,7 +46,6 @@ int main(int argc, char** argv)
 
     ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
 
-
     ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
     moveit_msgs::DisplayTrajectory display_trajectory;
 
@@ -63,11 +63,11 @@ int main(int argc, char** argv)
       pss.getPlanningScene(pswm, *scene_it);
 
       // visualize the scene_it
-      // apparently with metadata it extends it
       moveit_msgs::PlanningScene ps_msg = static_cast<const moveit_msgs::PlanningScene&>(*pswm);
       ps_pub.publish(ps_msg);
+      sleep(1);
 
-      //get query list
+      // get query list
       std::vector<std::string> pq_names;
       pss.getPlanningQueriesNames( pq_names, *scene_it);
 
@@ -80,18 +80,18 @@ int main(int argc, char** argv)
 
       ROS_INFO("Loaded %d trajectories for query %s", (int)planning_results.size(), first_query.c_str());
 
-      //animate the first trajectory
-      size_t last = planning_results.size()-1;
+      // animate the first trajectory
+      size_t ind = planning_results.size()-1;
       
       moveit_msgs::RobotTrajectory rt_msg;
-      rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[last]));
+      rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[ind]));
       
-      //get the start point
+      // get the start point
       moveit_warehouse::MotionPlanRequestWithMetadata planning_query;
       pss.getPlanningQuery(planning_query, *scene_it, first_query);
       moveit_msgs::MotionPlanRequest mpr = static_cast<const moveit_msgs::MotionPlanRequest&>(*planning_query);
       
-      //publish
+      // publish
       if(1)
       {
         display_trajectory.trajectory_start = mpr.start_state;
@@ -100,8 +100,6 @@ int main(int argc, char** argv)
         sleep(5.0);
       }
     }
-
-    //std::vector<std::string> files = boost::program_options::collect_unrecognized(po.options, boost::program_options::include_positional);
   }
   catch(mongo_ros::DbConnectException &ex)
   {
