@@ -5,8 +5,10 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /MotionPlanning1
+        - /MotionPlanning1/Scene Geometry1
         - /MotionPlanning1/Scene Robot1
         - /MotionPlanning1/Planning Request1
+        - /MotionPlanning1/Planning Metrics1
         - /MotionPlanning1/Planned Path1
         - /RobotState1
         - /MarkerArray1
@@ -971,7 +973,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-        Robot Alpha: 0.5
+        Robot Alpha: 0
         Show Robot Collision: false
         Show Robot Visual: true
       Value: true
@@ -1483,5 +1485,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1356
-  X: 113
-  Y: 107
+  X: 221
+  Y: 108
