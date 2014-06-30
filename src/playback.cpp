@@ -53,52 +53,52 @@ int main(int argc, char** argv)
     std::vector<std::string> ps_names;
     pss.getPlanningSceneNames( ps_names );
     ros::Publisher ps_pub = node_handle.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
+    
+    ROS_INFO("%d available scenes to display", (int)ps_names.size());
 
-    std::vector<std::string>::iterator scene = ps_names.begin();
-    for(; scene!=ps_names.end(); ++scene)
+    std::vector<std::string>::iterator scene_it = ps_names.begin();
+    for(; scene_it!=ps_names.end(); ++scene_it)
     {
       moveit_warehouse::PlanningSceneWithMetadata pswm;
-      pss.getPlanningScene(pswm, *scene);
+      pss.getPlanningScene(pswm, *scene_it);
 
-      // visualize the scene
+      // visualize the scene_it
       // apparently with metadata it extends it
       moveit_msgs::PlanningScene ps_msg = static_cast<const moveit_msgs::PlanningScene&>(*pswm);
       ps_pub.publish(ps_msg);
 
       //get query list
       std::vector<std::string> pq_names;
-      pss.getPlanningQueriesNames( pq_names, *scene);
+      pss.getPlanningQueriesNames( pq_names, *scene_it);
 
+      ROS_INFO("%d available queries to display", (int)pq_names.size());
       std::string first_query = pq_names.at(0);
-
-      std::cout << pq_names.at(0) << std::endl;
-      std::cout << pq_names.at(1) << std::endl;
-      std::cout << pq_names.at(2) << std::endl;
-
-
-      ROS_INFO("%d available queries", (int)pq_names.size());
 
       //get trajectory list
       std::vector<moveit_warehouse::RobotTrajectoryWithMetadata> planning_results;
-      pss.getPlanningResults(planning_results, *scene, first_query);
+      pss.getPlanningResults(planning_results, *scene_it, first_query);
 
       ROS_INFO("Loaded %d trajectories for query %s", (int)planning_results.size(), first_query.c_str());
 
-      //TODO WHY IS THIS NOT LOADING TRAJECTORIES?
-      
       //animate the first trajectory
-      moveit_msgs::RobotTrajectory rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[0]));
-
+      size_t last = planning_results.size()-1;
+      
+      moveit_msgs::RobotTrajectory rt_msg;
+      rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[last]));
+      
       //get the start point
       moveit_warehouse::MotionPlanRequestWithMetadata planning_query;
-      pss.getPlanningQuery(planning_query, *scene, first_query);
+      pss.getPlanningQuery(planning_query, *scene_it, first_query);
       moveit_msgs::MotionPlanRequest mpr = static_cast<const moveit_msgs::MotionPlanRequest&>(*planning_query);
       
       //publish
-      display_trajectory.trajectory_start = mpr.start_state;
-      display_trajectory.trajectory.push_back(rt_msg);
-      display_publisher.publish(display_trajectory);
-      sleep(5.0);
+      if(1)
+      {
+        display_trajectory.trajectory_start = mpr.start_state;
+        display_trajectory.trajectory.push_back(rt_msg);
+        display_publisher.publish(display_trajectory);
+        sleep(5.0);
+      }
     }
 
     //std::vector<std::string> files = boost::program_options::collect_unrecognized(po.options, boost::program_options::include_positional);
