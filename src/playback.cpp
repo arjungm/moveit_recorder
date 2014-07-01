@@ -14,7 +14,7 @@
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "moveit_recorder");
+  ros::init(argc, argv, "playback");
   ros::NodeHandle node_handle;  
   ros::AsyncSpinner spinner(1);
   spinner.start();
@@ -53,19 +53,27 @@ int main(int argc, char** argv)
     std::vector<std::string> ps_names;
     pss.getPlanningSceneNames( ps_names );
     ros::Publisher ps_pub = node_handle.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
+    while(ps_pub.getNumSubscribers() < 1)
+    {
+      ros::WallDuration sleep_t(0.5);
+      ROS_INFO("Not enough subscribers to \"%s\" topic... ", "planning_scene");
+      sleep_t.sleep();
+    }
     
     ROS_INFO("%d available scenes to display", (int)ps_names.size());
 
     std::vector<std::string>::iterator scene_it = ps_names.begin();
     for(; scene_it!=ps_names.end(); ++scene_it)
     {
+      ROS_INFO("Retrieving scene %s", scene_it->c_str());
       moveit_warehouse::PlanningSceneWithMetadata pswm;
       pss.getPlanningScene(pswm, *scene_it);
 
       // visualize the scene_it
+      ROS_INFO("Publishing scene...");
+      ps_pub.publish(static_cast<const moveit_msgs::PlanningScene&>(*pswm));
+
       moveit_msgs::PlanningScene ps_msg = static_cast<const moveit_msgs::PlanningScene&>(*pswm);
-      ps_pub.publish(ps_msg);
-      sleep(1);
 
       // get query list
       std::vector<std::string> pq_names;
@@ -106,7 +114,8 @@ int main(int argc, char** argv)
     ROS_ERROR_STREAM("Unable to connect to warehouse. If you just created the database, it could take a while for initial setup. Please try to run the benchmark again."
         << std::endl << ex.what());
   }
-
+  
+  ros::spin();
 
   ROS_INFO("Successfully performed trajectory playback");
   ros::shutdown();
