@@ -11,7 +11,6 @@ Panels:
         - /MotionPlanning1/Planning Metrics1
         - /MotionPlanning1/Planned Path1
         - /RobotState1
-        - /MarkerArray1
       Splitter Ratio: 0.566502
     Tree Height: 597
   - Class: rviz/Help
@@ -495,7 +494,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
         Loop Animation: false
-        Robot Alpha: 0.5
+        Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: true
         Show Trail: false
@@ -510,15 +509,15 @@ Visualization Manager:
         TextHeight: 0.08
       Planning Request:
         Colliding Link Color: 255; 0; 0
-        Goal State Alpha: 1
+        Goal State Alpha: 0
         Goal State Color: 250; 128; 0
         Interactive Marker Size: 0
         Joint Violation Color: 255; 0; 255
         Planning Group: right_arm
-        Query Goal State: true
-        Query Start State: true
+        Query Goal State: false
+        Query Start State: false
         Show Workspace: false
-        Start State Alpha: 1
+        Start State Alpha: 0
         Start State Color: 0; 255; 0
       Planning Scene Topic: /move_group/monitored_planning_scene
       Robot Description: robot_description
@@ -975,7 +974,7 @@ Visualization Manager:
             Show Trail: false
         Robot Alpha: 0
         Show Robot Collision: false
-        Show Robot Visual: true
+        Show Robot Visual: false
       Value: true
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
@@ -1430,7 +1429,7 @@ Visualization Manager:
       Show All Links: true
       Show Highlights: true
       Value: true
-      Visual Enabled: true
+      Visual Enabled: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /move_group/ompl_planner_data_marker_array
@@ -1466,10 +1465,10 @@ Visualization Manager:
         Z: 2.23518e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.489797
+      Pitch: 0.439797
       Target Frame: base_link
       Value: XYOrbit (rviz)
-      Yaw: 5.58494
+      Yaw: 5.82494
     Saved: ~
 Window Geometry:
   Displays:
@@ -1481,9 +1480,9 @@ Window Geometry:
   Hide Right Dock: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001a8000002eafc0200000004fb000000100044006900730070006c0061007900730000000028000002ea000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000000000030000039e0000017ffc0100000001fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001ae0000039e000002a200ffffff0000054c000002ea00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001a8000002eafc0200000004fb000000100044006900730070006c0061007900730100000028000002ea000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000000000030000054c0000017ffc0100000001fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000000000000054c000002a200ffffff0000039e000002ea00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1356
-  X: 221
+  X: 207
   Y: 108
