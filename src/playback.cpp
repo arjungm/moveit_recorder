@@ -93,6 +93,19 @@ int main(int argc, char** argv)
       
       moveit_msgs::RobotTrajectory rt_msg;
       rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[ind]));
+
+          // trajectory_processing::IterativeParabolicTimeParameterization traj_retimer;
+          // //make Robot Trajetory object
+          // robot_trajectory::RobotTrajectory rt(planning_scene_->getRobotModel(), motion_plan_req.group_name);
+          // moveit::core::RobotState rs(planning_scene_->getRobotModel());
+
+          // //retime the trajectory
+          // rs.setVariableValues(motion_plan_req.start_state.joint_state);
+          // rt.setRobotTrajectoryMsg(rs, *traj_it);
+          // bool success_retime = traj_retimer.computeTimeStamps(rt);
+          // ROS_INFO("Retimed trajectory successfully: %s", success_retime ? "yes" : "no" );
+          // rt.getRobotTrajectoryMsg(*traj_it);
+
       
       // get the start point
       moveit_warehouse::MotionPlanRequestWithMetadata planning_query;
