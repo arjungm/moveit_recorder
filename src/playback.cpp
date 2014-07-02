@@ -14,6 +14,9 @@
 
 #include <boost/program_options.hpp>
 
+#include  <stdio.h>
+#include  <sys/types.h>
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "playback");
@@ -120,6 +123,22 @@ int main(int argc, char** argv)
         display_trajectory.trajectory.push_back(rt_msg);
         display_publisher.publish(display_trajectory);
         sleep(5.0);
+
+        // fork and record
+        pid_t pid;
+        pid = fork();
+        
+        if(pid==0)
+        {
+          // child process records
+          system("recordmydesktop -o /tmp/video.ogv");
+        }
+        else
+        {
+          // parent spins while the trajectory executes and kills child
+          sleep(5.0);
+          kill(0,SIGINT);
+        }
       }
     }
   }
@@ -128,7 +147,7 @@ int main(int argc, char** argv)
     ROS_ERROR_STREAM("Unable to connect to warehouse. If you just created the database, it could take a while for initial setup. Please try to run the benchmark again."
         << std::endl << ex.what());
   }
-  
+
   ros::spin();
 
   ROS_INFO("Successfully performed trajectory playback");
