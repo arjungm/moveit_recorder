@@ -10,6 +10,8 @@
 #include <moveit/warehouse/planning_scene_storage.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
+#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+
 #include <boost/program_options.hpp>
 
 int main(int argc, char** argv)
@@ -69,18 +71,20 @@ int main(int argc, char** argv)
       moveit_warehouse::PlanningSceneWithMetadata pswm;
       pss.getPlanningScene(pswm, *scene_it);
 
-      // visualize the scene_it
+      // visualize the scene
       ROS_INFO("Publishing scene...");
-      ps_pub.publish(static_cast<const moveit_msgs::PlanningScene&>(*pswm));
-
       moveit_msgs::PlanningScene ps_msg = static_cast<const moveit_msgs::PlanningScene&>(*pswm);
+      ps_pub.publish(ps_msg);
 
-      // get query list
+      // get query
       std::vector<std::string> pq_names;
       pss.getPlanningQueriesNames( pq_names, *scene_it);
 
       ROS_INFO("%d available queries to display", (int)pq_names.size());
       std::string first_query = pq_names.at(0);
+      moveit_warehouse::MotionPlanRequestWithMetadata mprwm;
+      pss.getPlanningQuery(mprwm, *scene_it, first_query);
+      moveit_msgs::MotionPlanRequest mpr_msg = static_cast<const moveit_msgs::MotionPlanRequest&>(*mprwm);
 
       //get trajectory list
       std::vector<moveit_warehouse::RobotTrajectoryWithMetadata> planning_results;
@@ -89,33 +93,30 @@ int main(int argc, char** argv)
       ROS_INFO("Loaded %d trajectories for query %s", (int)planning_results.size(), first_query.c_str());
 
       // animate the first trajectory
-      size_t ind = planning_results.size()-1;
+      size_t ind = 0;
       
       moveit_msgs::RobotTrajectory rt_msg;
       rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[ind]));
-
-          // trajectory_processing::IterativeParabolicTimeParameterization traj_retimer;
-          // //make Robot Trajetory object
-          // robot_trajectory::RobotTrajectory rt(planning_scene_->getRobotModel(), motion_plan_req.group_name);
-          // moveit::core::RobotState rs(planning_scene_->getRobotModel());
-
-          // //retime the trajectory
-          // rs.setVariableValues(motion_plan_req.start_state.joint_state);
-          // rt.setRobotTrajectoryMsg(rs, *traj_it);
-          // bool success_retime = traj_retimer.computeTimeStamps(rt);
-          // ROS_INFO("Retimed trajectory successfully: %s", success_retime ? "yes" : "no" );
-          // rt.getRobotTrajectoryMsg(*traj_it);
-
       
-      // get the start point
-      moveit_warehouse::MotionPlanRequestWithMetadata planning_query;
-      pss.getPlanningQuery(planning_query, *scene_it, first_query);
-      moveit_msgs::MotionPlanRequest mpr = static_cast<const moveit_msgs::MotionPlanRequest&>(*planning_query);
-      
+      // retime the trajectory
+      trajectory_processing::IterativeParabolicTimeParameterization traj_retimer;
+      planning_scene_monitor::PlanningSceneMonitor psm("robot_description");
+      planning_scene::PlanningScenePtr ps = psm.getPlanningScene();
+      ps->setPlanningSceneMsg( ps_msg );
+
+      robot_trajectory::RobotTrajectory rt(ps->getRobotModel(), mpr_msg.group_name);
+      moveit::core::RobotState rs(ps->getRobotModel());
+
+      rs.setVariableValues(mpr_msg.start_state.joint_state); //ref state
+      rt.setRobotTrajectoryMsg(rs, rt_msg);
+      bool success_retime = traj_retimer.computeTimeStamps(rt);
+      ROS_INFO("Retimed trajectory successfully: %s", success_retime ? "yes" : "no" );
+      rt.getRobotTrajectoryMsg(rt_msg);
+
       // publish
       if(1)
       {
-        display_trajectory.trajectory_start = mpr.start_state;
+        display_trajectory.trajectory_start = mpr_msg.start_state;
         display_trajectory.trajectory.push_back(rt_msg);
         display_publisher.publish(display_trajectory);
         sleep(5.0);
