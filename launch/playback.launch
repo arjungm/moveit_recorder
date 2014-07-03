@@ -35,6 +35,9 @@
     <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
   </node>
 
+  <node name="recorder" pkg="moveit_recorder" type="recorder_node"
+    respawn="false" output="screen">
+  </node>
 
   <!-- LAUNCH PLAYBACK NODE -->
 

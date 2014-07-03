@@ -12,6 +12,8 @@
 #include "moveit_recorder/TrajectoryRetimer.h"
 #include "moveit_recorder/AnimationRecorder.h"
 
+#include <moveit_recorder/AnimationRequest.h>
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "playback");
@@ -46,11 +48,14 @@ int main(int argc, char** argv)
 
     ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
 
-    AnimationRecorder recorder( "/rviz/camera_placement",
-                                "planning_scene",
-                                "/move_group/display_planned_path",
-                                "animation_status",
-                                node_handle);
+    // request pub
+    ros::Publisher animation_pub = node_handle.advertise<moveit_recorder::AnimationRequest>("animation_request",1);
+    while(animation_pub.getNumSubscribers() < 1)
+    {
+      ros::WallDuration sleep_t(0.5);
+      ROS_INFO("Not enough subscribers to \"%s\" topic... ", "animation_request");
+      sleep_t.sleep();
+    }
 
 
     // control the camera
@@ -58,7 +63,6 @@ int main(int argc, char** argv)
     view_msg.target_frame = "base_link";
     view_msg.interpolation_mode = view_controller_msgs::CameraPlacement::SPHERICAL;
     view_msg.time_from_start = ros::Duration(0.5);
-
     std_msgs::Header header;
     header.stamp = ros::Time::now();
     header.frame_id = "base_link";
@@ -124,8 +128,17 @@ int main(int argc, char** argv)
           bool result = retimer.retime(rt_msg);
           ROS_INFO("Retiming success? %s", result? "yes" : "no" );
 
-          // record
-          recorder.record(view_msg, ps_msg, mpr_msg, rt_msg, "/tmp/video.ogv");
+          moveit_recorder::AnimationRequest req;
+          req.camera_placement = view_msg;
+          req.planning_scene = ps_msg;
+          req.motion_plan_request = mpr_msg;
+          req.robot_trajectory = rt_msg;
+          req.filepath.data = "/tmp/video.ogv";
+
+          animation_pub.publish(req);
+          
+          std::cout << "HALT PLAYBACK" << std::endl;
+          std::cin.get();
         }//traj
       }//query
     }//scene
