@@ -18,8 +18,7 @@
 #include <sys/types.h>
 #include <std_msgs/Bool.h>
 
-#include <rviz/view_controller.h>
-#include <rviz_animated_view_controller/rviz_animated_view_controller.h>
+#include <view_controller_msgs/CameraPlacement.h>
 
 class AnimationMonitor
 {
@@ -149,8 +148,48 @@ int main(int argc, char** argv)
       AnimationMonitor am;
       ros::Subscriber sub = node_handle.subscribe("animation_status", 1, &AnimationMonitor::statusCallback, &am);
 
-      // set view
-      rviz_animated_view_controller::AnimatedViewController avc;
+      // control the camera
+      view_controller_msgs::CameraPlacement control_cam;
+      control_cam.target_frame = "base_link";
+      control_cam.interpolation_mode = view_controller_msgs::CameraPlacement::SPHERICAL;
+      control_cam.time_from_start = ros::Duration(0.5);
+      
+      std_msgs::Header header;
+      header.stamp = ros::Time::now();
+      header.frame_id = "base_link";
+
+      geometry_msgs::PointStamped eye;
+      eye.header = header;
+      eye.point.x = 2.5;
+      eye.point.y = -1;
+      eye.point.z = 2;
+      geometry_msgs::PointStamped focus;
+      focus.header = header;
+      focus.point.x = -0.21941;
+      focus.point.y = 0.27017;
+      focus.point.z = 0.52922;
+      geometry_msgs::Vector3Stamped up;
+      up.header = header;
+      up.vector.x = 0;
+      up.vector.y = 0;
+      up.vector.z = 1;
+
+      control_cam.eye = eye;
+      control_cam.focus = focus;
+      control_cam.up = up;
+      control_cam.mouse_interaction_mode = view_controller_msgs::CameraPlacement::NO_CHANGE;
+      control_cam.interaction_disabled = true;
+      control_cam.allow_free_yaw_axis = false;
+
+      ros::Publisher camera_controller = node_handle.advertise<view_controller_msgs::CameraPlacement>("/rviz/camera_placement", 1, true);
+      while(camera_controller.getNumSubscribers() < 1)
+      {
+        ros::WallDuration sleep_t(0.5);
+        ROS_INFO("Not enough subscribers to \"%s\" topic... ", "/rviz/camera_placement");
+        sleep_t.sleep();
+      }
+      camera_controller.publish(control_cam);
+
 
       // publish
       if(1)
@@ -162,7 +201,7 @@ int main(int argc, char** argv)
         // fork and record
         pid_t pid;
         pid = fork();
-        
+
         if(pid==0)
         {
           // child process records
