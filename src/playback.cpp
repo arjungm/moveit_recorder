@@ -14,8 +14,37 @@
 
 #include <boost/program_options.hpp>
 
-#include  <stdio.h>
-#include  <sys/types.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <std_msgs/Bool.h>
+
+#include <rviz/view_controller.h>
+#include <rviz_animated_view_controller/rviz_animated_view_controller.h>
+
+class AnimationMonitor
+{
+  public:
+    AnimationMonitor() : last_msg_(false), status_(false) {}
+    void statusCallback(const boost::shared_ptr<std_msgs::Bool const>& status_msg)
+    {
+      if(!last_msg_ && status_msg->data)
+      {
+        status_ = true;
+      }
+      else if(last_msg_ && !status_msg->data)
+      {
+        status_ = false;
+      }
+      last_msg_ = status_msg->data;
+    }
+    bool getStatus()
+    {
+      return status_;
+    }
+  private:
+    bool last_msg_;
+    bool status_;
+};
 
 int main(int argc, char** argv)
 {
@@ -116,13 +145,19 @@ int main(int argc, char** argv)
       ROS_INFO("Retimed trajectory successfully: %s", success_retime ? "yes" : "no" );
       rt.getRobotTrajectoryMsg(rt_msg);
 
+      // monitor
+      AnimationMonitor am;
+      ros::Subscriber sub = node_handle.subscribe("animation_status", 1, &AnimationMonitor::statusCallback, &am);
+
+      // set view
+      AnimatedViewController avc;
+
       // publish
       if(1)
       {
         display_trajectory.trajectory_start = mpr_msg.start_state;
         display_trajectory.trajectory.push_back(rt_msg);
         display_publisher.publish(display_trajectory);
-        sleep(5.0);
 
         // fork and record
         pid_t pid;
@@ -136,7 +171,16 @@ int main(int argc, char** argv)
         else
         {
           // parent spins while the trajectory executes and kills child
-          sleep(5.0);
+          while(ros::ok() && !am.getStatus())
+          {
+            ros::spinOnce();
+          }
+          ROS_INFO("Animation almost ready...");
+          while(ros::ok() && am.getStatus())
+          {
+            ros::spinOnce();
+          }
+          ROS_INFO("Animation terminated");
           kill(0,SIGINT);
         }
       }
@@ -147,8 +191,6 @@ int main(int argc, char** argv)
     ROS_ERROR_STREAM("Unable to connect to warehouse. If you just created the database, it could take a while for initial setup. Please try to run the benchmark again."
         << std::endl << ex.what());
   }
-
-  ros::spin();
 
   ROS_INFO("Successfully performed trajectory playback");
   ros::shutdown();

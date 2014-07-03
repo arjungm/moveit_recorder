@@ -7,7 +7,7 @@
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="amenon@todo.todo">amenon</maintainer>
+  <maintainer email="arjun.menon@sri.com">amenon</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -44,12 +44,14 @@
   <build_depend>moveit_ros_warehouse</build_depend>
   <build_depend>moveit_ros_move_group</build_depend>
   <build_depend>moveit_ros_planning_interface</build_depend>
+  <build_depend>rviz_animated_view_controller</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rviz</build_depend>
   <run_depend>moveit_core</run_depend>
   <run_depend>moveit_ros_warehouse</run_depend>
   <run_depend>moveit_ros_move_group</run_depend>
   <run_depend>moveit_ros_planning_interface</run_depend>
+  <run_depend>rviz_animated_view_controller</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rviz</run_depend>
 

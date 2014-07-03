@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_warehouse
   moveit_ros_planning_interface
   moveit_ros_move_group
+  rviz_animated_view_controller
   roscpp
   rviz
 )
