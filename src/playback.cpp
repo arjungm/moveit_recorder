@@ -150,7 +150,7 @@ int main(int argc, char** argv)
       ros::Subscriber sub = node_handle.subscribe("animation_status", 1, &AnimationMonitor::statusCallback, &am);
 
       // set view
-      AnimatedViewController avc;
+      rviz_animated_view_controller::AnimatedViewController avc;
 
       // publish
       if(1)
