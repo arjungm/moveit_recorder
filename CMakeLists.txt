@@ -83,8 +83,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES moveit_recorder
+  INCLUDE_DIRS
+    include
+  LIBRARIES 
+    moveit_recorder_lib
 #  CATKIN_DEPENDS moveit_core moveit_ros moveit_warehouse roscpp rviz
 #  DEPENDS system_lib
 )
@@ -95,25 +97,22 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include)
+include_directories(${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
-# add_library(moveit_recorder
-#   src/${PROJECT_NAME}/moveit_recorder.cpp
-# )
+add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp src/AnimationRecorder.cpp)
+target_link_libraries(moveit_recorder_lib ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(playback_node src/playback.cpp)
+target_link_libraries(playback_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(moveit_recorder_node moveit_recorder_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(playback_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##
