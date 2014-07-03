@@ -10,6 +10,9 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning_interface
   moveit_ros_move_group
   view_controller_msgs
+  moveit_msgs
+  std_msgs
+  message_generation
   roscpp
 )
 
@@ -47,11 +50,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  AnimationRequest.msg
+  AnimationResponse.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -68,10 +71,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  view_controller_msgs
+  moveit_msgs
+  std_msgs  # Or other packages containing msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -87,7 +92,8 @@ catkin_package(
     include
   LIBRARIES 
     moveit_recorder_lib
-#  CATKIN_DEPENDS moveit_core moveit_ros moveit_warehouse roscpp rviz
+  CATKIN_DEPENDS 
+    message_runtime
 #  DEPENDS system_lib
 )
 
@@ -101,12 +107,15 @@ include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
-add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp src/AnimationRecorder.cpp)
+add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp) 
 target_link_libraries(moveit_recorder_lib ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(playback_node src/playback.cpp)
 target_link_libraries(playback_node moveit_recorder_lib ${catkin_LIBRARIES})
+
+add_executable(recorder_node src/AnimationRecorder.cpp)
+target_link_libraries(recorder_node ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
