@@ -53,87 +53,82 @@ int main(int argc, char** argv)
                                 node_handle);
 
 
-    //ask the warehouse for the scene
+    // control the camera
+    view_controller_msgs::CameraPlacement view_msg;
+    view_msg.target_frame = "base_link";
+    view_msg.interpolation_mode = view_controller_msgs::CameraPlacement::SPHERICAL;
+    view_msg.time_from_start = ros::Duration(0.5);
+
+    std_msgs::Header header;
+    header.stamp = ros::Time::now();
+    header.frame_id = "base_link";
+    view_msg.eye.header = header;
+    view_msg.eye.point.x = 2.5;
+    view_msg.eye.point.y = -1;
+    view_msg.eye.point.z = 2;
+    view_msg.focus.header = header;
+    view_msg.focus.point.x = -0.21941;
+    view_msg.focus.point.y = 0.27017;
+    view_msg.focus.point.z = 0.52922;
+    view_msg.up.header = header;
+    view_msg.up.vector.x = 0;
+    view_msg.up.vector.y = 0;
+    view_msg.up.vector.z = 1;
+    view_msg.mouse_interaction_mode = view_controller_msgs::CameraPlacement::NO_CHANGE;
+    view_msg.interaction_disabled = true;
+    view_msg.allow_free_yaw_axis = false;
+
+    // ask the warehouse for the scenes
     std::vector<std::string> ps_names;
     pss.getPlanningSceneNames( ps_names );
-    
     ROS_INFO("%d available scenes to display", (int)ps_names.size());
-
-    std::vector<std::string>::iterator scene_it = ps_names.begin();
-    for(; scene_it!=ps_names.end(); ++scene_it)
+    
+    // iterate over scenes
+    std::vector<std::string>::iterator scene_name = ps_names.begin();
+    for(; scene_name!=ps_names.end(); ++scene_name)
     {
-      ROS_INFO("Retrieving scene %s", scene_it->c_str());
+      ROS_INFO("Retrieving scene %s", scene_name->c_str());
       moveit_warehouse::PlanningSceneWithMetadata pswm;
-      pss.getPlanningScene(pswm, *scene_it);
+      pss.getPlanningScene(pswm, *scene_name);
       moveit_msgs::PlanningScene ps_msg = static_cast<const moveit_msgs::PlanningScene&>(*pswm);
-
-      // get query
+      
+      // ask qarehosue for the queries
       std::vector<std::string> pq_names;
-      pss.getPlanningQueriesNames( pq_names, *scene_it);
-
+      pss.getPlanningQueriesNames( pq_names, *scene_name);
       ROS_INFO("%d available queries to display", (int)pq_names.size());
-      std::string first_query = pq_names.at(0);
-      moveit_warehouse::MotionPlanRequestWithMetadata mprwm;
-      pss.getPlanningQuery(mprwm, *scene_it, first_query);
-      moveit_msgs::MotionPlanRequest mpr_msg = static_cast<const moveit_msgs::MotionPlanRequest&>(*mprwm);
-
-      //get trajectory list
-      std::vector<moveit_warehouse::RobotTrajectoryWithMetadata> planning_results;
-      pss.getPlanningResults(planning_results, *scene_it, first_query);
-
-      ROS_INFO("Loaded %d trajectories for query %s", (int)planning_results.size(), first_query.c_str());
-
-      // animate the first trajectory
-      size_t ind = 0;
       
-      moveit_msgs::RobotTrajectory rt_msg;
-      rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(*(planning_results[ind]));
-
-      // retime it
-      TrajectoryRetimer retimer( "robot_description", mpr_msg.group_name );
-      retimer.configure(ps_msg, mpr_msg);
-      bool result = retimer.retime(rt_msg);
-      ROS_INFO("Retiming success? %s", result? "yes" : "no" );
-      
-      // control the camera
-      view_controller_msgs::CameraPlacement control_cam;
-      control_cam.target_frame = "base_link";
-      control_cam.interpolation_mode = view_controller_msgs::CameraPlacement::SPHERICAL;
-      control_cam.time_from_start = ros::Duration(0.5);
-      
-      std_msgs::Header header;
-      header.stamp = ros::Time::now();
-      header.frame_id = "base_link";
-
-      geometry_msgs::PointStamped eye;
-      eye.header = header;
-      eye.point.x = 2.5;
-      eye.point.y = -1;
-      eye.point.z = 2;
-      geometry_msgs::PointStamped focus;
-      focus.header = header;
-      focus.point.x = -0.21941;
-      focus.point.y = 0.27017;
-      focus.point.z = 0.52922;
-      geometry_msgs::Vector3Stamped up;
-      up.header = header;
-      up.vector.x = 0;
-      up.vector.y = 0;
-      up.vector.z = 1;
-
-      control_cam.eye = eye;
-      control_cam.focus = focus;
-      control_cam.up = up;
-      control_cam.mouse_interaction_mode = view_controller_msgs::CameraPlacement::NO_CHANGE;
-      control_cam.interaction_disabled = true;
-      control_cam.allow_free_yaw_axis = false;
-
-      // record
-      if(1)
+      // iterate over the queries
+      std::vector<std::string>::iterator query_name = pq_names.begin();
+      for(; query_name!=pq_names.end(); ++query_name)
       {
-        recorder.record(control_cam, ps_msg, mpr_msg, rt_msg, "/tmp/video.ogv");
-      }
-    }
+        ROS_INFO("Retrieving query %s", query_name->c_str());
+        moveit_warehouse::MotionPlanRequestWithMetadata mprwm;
+        pss.getPlanningQuery(mprwm, *scene_name, *query_name);
+        moveit_msgs::MotionPlanRequest mpr_msg = static_cast<const moveit_msgs::MotionPlanRequest&>(*mprwm);
+
+        // ask warehouse for stored trajectories
+        std::vector<moveit_warehouse::RobotTrajectoryWithMetadata> planning_results;
+        pss.getPlanningResults(planning_results, *scene_name, *query_name);
+        ROS_INFO("Loaded %d trajectories", (int)planning_results.size());
+
+        // animate each trajectory
+        std::vector<moveit_warehouse::RobotTrajectoryWithMetadata>::iterator traj_w_mdata = planning_results.begin();
+        for(; traj_w_mdata!=planning_results.end(); ++traj_w_mdata)
+        {
+
+          moveit_msgs::RobotTrajectory rt_msg;
+          rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(**traj_w_mdata);
+          // retime it
+          TrajectoryRetimer retimer( "robot_description", mpr_msg.group_name );
+          retimer.configure(ps_msg, mpr_msg);
+          bool result = retimer.retime(rt_msg);
+          ROS_INFO("Retiming success? %s", result? "yes" : "no" );
+
+          // record
+          recorder.record(view_msg, ps_msg, mpr_msg, rt_msg, "/tmp/video.ogv");
+        }//traj
+      }//query
+    }//scene
   }
   catch(mongo_ros::DbConnectException &ex)
   {
