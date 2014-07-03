@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(moveit_recorder)
 
-# QT stuff
-find_package(Qt4 REQUIRED)
-include(${QT_USE_FILE})
-add_definitions(-DQT_NO_KEYWORDS)
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -14,9 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_warehouse
   moveit_ros_planning_interface
   moveit_ros_move_group
-  rviz_animated_view_controller
+  view_controller_msgs
   roscpp
-  rviz
 )
 
 ## System dependencies are found with CMake's conventions
