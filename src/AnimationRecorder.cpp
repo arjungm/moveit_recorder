@@ -1,4 +1,5 @@
 #include "moveit_recorder/AnimationRecorder.h"
+#include <moveit_recorder/AnimationResponse.h>
 #include <sstream>
 #include <signal.h>
 
@@ -11,10 +12,13 @@ void AnimationMonitor::statusCallback(const boost::shared_ptr<std_msgs::Bool con
   if(!m_last_msg && status_msg->data)
   {
     m_status = true;
+    ROS_INFO("Animation started");
   }
   else if(m_last_msg && !status_msg->data)
   {
     m_status = false;
+    ROS_INFO("Animation terminated");
+    kill(getpid(), SIGINT);
   }
   m_last_msg = status_msg->data;
 }
@@ -55,56 +59,57 @@ AnimationRecorder::AnimationRecorder(std::string view_control_topic,
 
 AnimationRecorder::~AnimationRecorder() {}
 
-void AnimationRecorder::record(
-    const view_controller_msgs::CameraPlacement& view_msg,
-    const moveit_msgs::PlanningScene& ps_msg,
-    const moveit_msgs::MotionPlanRequest& mpr_msg,
-    const moveit_msgs::RobotTrajectory& rt_msg,
-    const std::string filepath)
+void AnimationRecorder::record(const boost::shared_ptr<moveit_recorder::AnimationRequest>& req)
 {
   // set view
   ROS_INFO("Setting view");
-  m_view_control_pub.publish(view_msg);
+  m_view_control_pub.publish(req->camera_placement);
 
   // display scene
   ROS_INFO("Setting scene");
-  m_planning_scene_pub.publish(ps_msg);
+  m_planning_scene_pub.publish(req->planning_scene);
   
   // display
   moveit_msgs::DisplayTrajectory display_trajectory;
-  display_trajectory.trajectory_start = mpr_msg.start_state;
-  display_trajectory.trajectory.push_back(rt_msg);
+  display_trajectory.trajectory_start = req->motion_plan_request.start_state;
+  display_trajectory.trajectory.push_back(req->robot_trajectory);
   ROS_INFO("Displaying traj");
   m_display_traj_pub.publish(display_trajectory);
 
   // record command
   std::stringstream ss;
   ss << "recordmydesktop -o ";
-  ss << filepath;
+  ss << req->filepath;
   std::string command = ss.str();
-
-  // fork and record
-  pid_t pid;
-  pid = fork();
   
-  if(pid==0)
+  system(command.c_str());
+  //runs til sigint received
+
+  ROS_WARN("SIGINT Received!");
+}
+
+int main(int argc, char** argv)
+{
+  ros::init(argc, argv, "recorder");
+  ros::NodeHandle node_handle;  
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
+  
+  AnimationRecorder recorder( "/rviz/camera_placement",
+                              "planning_scene",
+                              "/move_group/display_planned_path",
+                              "animation_status",
+                              node_handle);
+
+  ros::Subscriber ar_sub = node_handle.subscribe("animation_request", 1, &AnimationRecorder::record, &recorder);
+  ros::Publisher ar_pub = node_handle.advertise<moveit_recorder::AnimationResponse>("animation_reponse",1,true);
+  
+  while(ros::ok())
   {
-    // child process records
-    system(command.c_str());
+    ros::spinOnce();
   }
-  else
-  {
-    // parent spins while the trajectory executes and kills child
-    while(ros::ok() && !m_am.getStatus())
-    {
-      ros::spinOnce();
-    }
-    ROS_INFO("Animation started...");
-    while(ros::ok() && m_am.getStatus())
-    {
-      ros::spinOnce();
-    }
-    ROS_INFO("Animation terminated");
-    kill(0,SIGINT);
-  }
+  
+  ROS_INFO("Successfully animated");
+  ros::shutdown();
+  return 0;
 }

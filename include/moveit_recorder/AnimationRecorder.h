@@ -13,6 +13,8 @@
 #include <moveit_msgs/MotionPlanRequest.h>
 #include <moveit_msgs/PlanningScene.h>
 
+#include <moveit_recorder/AnimationRequest.h>
+
 #ifndef ANIM_RECORDER_H
 #define ANIM_RECORDER_H
 
@@ -36,11 +38,7 @@ class AnimationRecorder
                       std::string anim_status_topic,
                       ros::NodeHandle& nh);
     ~AnimationRecorder();
-    void record(const view_controller_msgs::CameraPlacement& view_msg,
-                const moveit_msgs::PlanningScene& ps_msg,
-                const moveit_msgs::MotionPlanRequest& mpr_msg,
-                const moveit_msgs::RobotTrajectory& rt_msg,
-                const std::string filepath);
+    void record(const boost::shared_ptr<moveit_recorder::AnimationRequest>& req);
   private:
     AnimationMonitor m_am;
     ros::Publisher m_view_control_pub;
