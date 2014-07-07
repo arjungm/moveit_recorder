@@ -39,6 +39,9 @@ class AnimationRecorder
                       ros::NodeHandle& nh);
     ~AnimationRecorder();
     void record(const boost::shared_ptr<moveit_recorder::AnimationRequest>& req);
+    bool getRecordStatus();
+    void setRecordStatus(bool status);
+    bool getMonitorStatus();
   private:
     AnimationMonitor m_am;
     ros::Publisher m_view_control_pub;
@@ -46,6 +49,7 @@ class AnimationRecorder
     ros::Publisher m_planning_scene_pub;
     ros::Subscriber m_animation_status_sub;
     ros::NodeHandle m_node_handle;
+    bool m_record_start;
 };
 
 #endif

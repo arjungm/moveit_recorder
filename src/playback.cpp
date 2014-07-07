@@ -13,6 +13,14 @@
 #include "moveit_recorder/AnimationRecorder.h"
 
 #include <moveit_recorder/AnimationRequest.h>
+#include <moveit_recorder/AnimationResponse.h>
+
+bool static ready;
+
+void animationResponseCallback(const boost::shared_ptr<moveit_recorder::AnimationResponse const>& ar_msg)
+{
+  ready = ar_msg->ready.data;
+}
 
 int main(int argc, char** argv)
 {
@@ -57,6 +65,14 @@ int main(int argc, char** argv)
       sleep_t.sleep();
     }
 
+    // response pub
+    ros::Subscriber animation_sub = node_handle.subscribe("animation_response", 1, animationResponseCallback);
+    while(animation_sub.getNumPublishers() < 1)
+    {
+      ros::WallDuration sleep_t(0.5);
+      ROS_INFO("Not enough publishers to \"%s\" topic...", "animation_response");
+      sleep_t.sleep();
+    }
 
     // control the camera
     view_controller_msgs::CameraPlacement view_msg;
@@ -136,9 +152,14 @@ int main(int argc, char** argv)
           req.filepath.data = "/tmp/video.ogv";
 
           animation_pub.publish(req);
-          
-          std::cout << "HALT PLAYBACK" << std::endl;
-          std::cin.get();
+          usleep(1000);
+          ready = false;
+          while(ros::ok() && !ready)
+          {
+            ros::spinOnce(); //updates the ready status
+            usleep(1000);
+          }
+          ROS_ERROR("RECORDING DONE!");
         }//traj
       }//query
     }//scene
@@ -149,7 +170,7 @@ int main(int argc, char** argv)
         << std::endl << ex.what());
   }
 
-  ROS_INFO("Successfully performed trajectory playback");
+  ROS_ERROR("Successfully performed trajectory playback");
   ros::shutdown();
   return 0;
 }

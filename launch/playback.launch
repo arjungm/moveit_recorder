@@ -36,7 +36,7 @@
   </node>
 
   <node name="recorder" pkg="moveit_recorder" type="recorder_node"
-    respawn="false" output="screen">
+    respawn="true" output="screen">
   </node>
 
   <!-- LAUNCH PLAYBACK NODE -->
