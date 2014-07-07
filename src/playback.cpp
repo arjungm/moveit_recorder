@@ -13,13 +13,12 @@
 #include "moveit_recorder/AnimationRecorder.h"
 
 #include <moveit_recorder/AnimationRequest.h>
-#include <moveit_recorder/AnimationResponse.h>
 
 bool static ready;
 
-void animationResponseCallback(const boost::shared_ptr<moveit_recorder::AnimationResponse const>& ar_msg)
+void animationResponseCallback(const boost::shared_ptr<std_msgs::Bool const>& msg)
 {
-  ready = ar_msg->ready.data;
+  ready = msg->data;
 }
 
 int main(int argc, char** argv)
@@ -55,22 +54,22 @@ int main(int argc, char** argv)
     moveit_warehouse::PlanningSceneStorage pss(host, port);
 
     ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
+    
+    // response sub
+    ros::Subscriber animation_sub = node_handle.subscribe("animation_response", 1, animationResponseCallback);
+    while(animation_sub.getNumPublishers() < 1)
+    {
+      ros::WallDuration sleep_t(0.5);
+      ROS_INFO("[Playback] Not enough publishers to \"%s\" topic...", "animation_response");
+      sleep_t.sleep();
+    }
 
     // request pub
     ros::Publisher animation_pub = node_handle.advertise<moveit_recorder::AnimationRequest>("animation_request",1);
     while(animation_pub.getNumSubscribers() < 1)
     {
       ros::WallDuration sleep_t(0.5);
-      ROS_INFO("Not enough subscribers to \"%s\" topic... ", "animation_request");
-      sleep_t.sleep();
-    }
-
-    // response pub
-    ros::Subscriber animation_sub = node_handle.subscribe("animation_response", 1, animationResponseCallback);
-    while(animation_sub.getNumPublishers() < 1)
-    {
-      ros::WallDuration sleep_t(0.5);
-      ROS_INFO("Not enough publishers to \"%s\" topic...", "animation_response");
+      ROS_INFO("[Playback] Not enough subscribers to \"%s\" topic... ", "animation_request");
       sleep_t.sleep();
     }
 
