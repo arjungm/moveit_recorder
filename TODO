@@ -1,0 +1,11 @@
+view_controller message template
+view configuration file
+-read in
+-write out (?)
+incorporate into playback pipeline
+set up proper message topics args for launch file
+
+refactor:
+
+-animation recorder and spinning
+-playback node and the publishers and the free function needs to be removed
