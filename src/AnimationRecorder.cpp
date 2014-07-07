@@ -1,5 +1,4 @@
 #include "moveit_recorder/AnimationRecorder.h"
-#include <moveit_recorder/AnimationResponse.h>
 #include <sstream>
 #include <signal.h>
 
@@ -25,38 +24,48 @@ void AnimationMonitor::statusCallback(const boost::shared_ptr<std_msgs::Bool con
 AnimationRecorder::AnimationRecorder(std::string view_control_topic, 
                                      std::string planning_scene_topic,
                                      std::string display_traj_topic, 
-                                     std::string anim_status_topic, 
+                                     std::string anim_status_topic,
+                                     std::string anim_response_topic, 
                                      ros::NodeHandle& nh) 
-: m_am(), m_node_handle(nh), m_record_start(false)
+: m_am(), m_node_handle(nh), m_recording_ready(false)
 {
-  m_view_control_pub = m_node_handle.advertise<view_controller_msgs::CameraPlacement>(view_control_topic, 1, true);
-  while(m_view_control_pub.getNumSubscribers() < 1)
-  {
-    ros::WallDuration sleep_t(0.5);
-    ROS_INFO("Not enough subscribers to \"%s\" topic... ", view_control_topic.c_str());
-    sleep_t.sleep();
-  }
-  
-  m_display_traj_pub = m_node_handle.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1, true);
-  while(m_display_traj_pub.getNumSubscribers() < 1)
-  {
-    ros::WallDuration sleep_t(0.5);
-    ROS_INFO("Not enough subscribers to \"%s\" topic... ", display_traj_topic.c_str());
-    sleep_t.sleep();
-  }
-    
-  m_planning_scene_pub = m_node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic, 1);
-  while(m_planning_scene_pub.getNumSubscribers() < 1)
-  {
-    ros::WallDuration sleep_t(0.5);
-    ROS_INFO("Not enough subscribers to \"%s\" topic... ", planning_scene_topic.c_str());
-    sleep_t.sleep();
-  }
-
+  // load all pubs and subs
   m_animation_status_sub = m_node_handle.subscribe(anim_status_topic, 1, &AnimationMonitor::statusCallback, &m_am);
+
+  m_view_control_pub = m_node_handle.advertise<view_controller_msgs::CameraPlacement>(view_control_topic, 1, true);
+  m_display_traj_pub = m_node_handle.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1, true);
+  m_planning_scene_pub = m_node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic, 1);
+  m_animation_response_pub = m_node_handle.advertise<std_msgs::Bool>(anim_response_topic, 1);
+
+  // wait til all topics are hooked up
+  waitOnSubscribersToTopic(m_planning_scene_pub, planning_scene_topic);
+  waitOnSubscribersToTopic(m_display_traj_pub,display_traj_topic);
+  waitOnSubscribersToTopic(m_view_control_pub, view_control_topic);
+  waitOnSubscribersToTopic(m_animation_response_pub, anim_response_topic);
+  waitOnPublishersToTopic(m_animation_status_sub, anim_status_topic);
 }
 
 AnimationRecorder::~AnimationRecorder() {}
+
+void AnimationRecorder::waitOnSubscribersToTopic(const ros::Publisher& pub, const std::string& topic)
+{
+  while(pub.getNumSubscribers() < 1)
+  {
+    ros::WallDuration sleep_t(0.5);
+    ROS_INFO("[Recorder] Not enough subscribers to \"%s\" topic... ", topic.c_str());
+    sleep_t.sleep();
+  }
+}
+
+void AnimationRecorder::waitOnPublishersToTopic(const ros::Subscriber& sub, const std::string& topic)
+{
+  while(sub.getNumPublishers() < 1)
+  {
+    ros::WallDuration sleep_t(0.5);
+    ROS_INFO("[Recorder] Not enough publishers to \"%s\" topic... ", topic.c_str());
+    sleep_t.sleep();
+  }
+}
 
 void AnimationRecorder::record(const boost::shared_ptr<moveit_recorder::AnimationRequest>& req)
 {
@@ -74,26 +83,70 @@ void AnimationRecorder::record(const boost::shared_ptr<moveit_recorder::Animatio
   display_trajectory.trajectory.push_back(req->robot_trajectory);
   ROS_INFO("Displaying traj");
 
-  //set status to ready to go
-  m_record_start = true;
+  // record command
+  // char* m_recorder_argv[4];
+  m_recorder_argv[0] = "recordmydesktop";
+  m_recorder_argv[1] = "-o";
+  m_recorder_argv[2] = const_cast<char*>(req->filepath.data.c_str());
+  m_recorder_argv[3] = NULL;
 
+  m_recording_ready = true;
+  
   m_display_traj_pub.publish(display_trajectory);
-
 }
 
-bool AnimationRecorder::getRecordStatus()
+void AnimationRecorder::forkedRecord()
 {
-    return m_record_start;
-}
+  // fork and record
+  pid_t pid;
+  pid = fork();
 
-void AnimationRecorder::setRecordStatus(bool status)
-{
-    m_record_start = status;
+  //every process in its own process group
+  if(pid==0)
+  {
+    // child process records
+    execvp(m_recorder_argv[0], m_recorder_argv);
+    exit(0);
+  }
+  else
+  {
+    std_msgs::Bool response_msg;
+    response_msg.data = false;
+
+    // parent spins while the trajectory executes and kills child
+    while(ros::ok() && !getMonitorStatus())
+    {
+      ros::spinOnce();
+      usleep(1000);
+    }
+    ROS_WARN("Animation started...");
+    while(ros::ok() && getMonitorStatus())
+    {
+      ros::spinOnce();
+      m_animation_response_pub.publish(response_msg);
+    }
+    ROS_WARN("Animation terminated...");
+    kill(pid,SIGINT);
+    usleep(1000);
+    
+    response_msg.data=true;
+    m_animation_response_pub.publish(response_msg);
+  }
 }
 
 bool AnimationRecorder::getMonitorStatus()
 {
     return m_am.getStatus();
+}
+
+bool AnimationRecorder::getRecordingReadyStatus()
+{
+  return m_recording_ready;
+}
+
+void AnimationRecorder::setRecordingReadyStatus(bool status)
+{
+  m_recording_ready = status;
 }
 
 int main(int argc, char** argv)
@@ -107,64 +160,18 @@ int main(int argc, char** argv)
                               "planning_scene",
                               "/move_group/display_planned_path",
                               "animation_status",
+                              "animation_response",
                               node_handle);
 
   ros::Subscriber ar_sub = node_handle.subscribe("animation_request", 1, &AnimationRecorder::record, &recorder);
-  ros::Publisher ar_pub = node_handle.advertise<moveit_recorder::AnimationResponse>("animation_response",1,true);
   
   while(ros::ok())
   {
     ros::spinOnce();
-
-    //if anim request received
-    if(recorder.getRecordStatus())
+    if( recorder.getRecordingReadyStatus() )
     {
-        // record command
-        char* argv[4];
-        argv[0] = "recordmydesktop";
-        argv[1] = "-o";
-        argv[2] = "/tmp/video.ogv"; //const_cast<char*>(req->filepath.data.c_str());
-        argv[3] = NULL;
-
-        // fork and record
-        pid_t pid;
-        pid = fork();
-
-        //every process in its own process group
-        if(pid==0)
-        {
-            // child process records
-            execvp(argv[0], argv);
-            exit(0);
-        }
-        else
-        {
-            moveit_recorder::AnimationResponse ar;
-            // parent spins while the trajectory executes and kills child
-            while(ros::ok() && !recorder.getMonitorStatus())
-            {
-                ros::spinOnce();
-                ar.ready.data = false;
-                ar.complete.data = false;
-                ar_pub.publish(ar);
-            }
-            ROS_WARN("Animation started...");
-            ar.ready.data = false;
-            ar.complete.data = false;
-            ar_pub.publish(ar);
-            while(ros::ok() && recorder.getMonitorStatus())
-            {
-                ros::spinOnce();
-                ar_pub.publish(ar);
-            }
-            ROS_WARN("Animation terminated...");
-            recorder.setRecordStatus(false);
-            usleep(1000);
-            kill(pid,SIGINT);
-            ar.ready.data=true;
-            ar.complete.data=true;
-            ar_pub.publish(ar);
-        }
+      recorder.forkedRecord();
+      recorder.setRecordingReadyStatus(false);
     }
     usleep(1000);
   }

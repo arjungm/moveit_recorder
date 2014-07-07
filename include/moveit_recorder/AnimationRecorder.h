@@ -36,20 +36,27 @@ class AnimationRecorder
                       std::string planning_scene_topic,
                       std::string display_traj_topic,
                       std::string anim_status_topic,
+                      std::string anim_response_topic,
                       ros::NodeHandle& nh);
     ~AnimationRecorder();
+    void waitOnPublishersToTopic(const ros::Subscriber& sub, const std::string& topic);
+    void waitOnSubscribersToTopic(const ros::Publisher& pub, const std::string& topic);
     void record(const boost::shared_ptr<moveit_recorder::AnimationRequest>& req);
-    bool getRecordStatus();
-    void setRecordStatus(bool status);
     bool getMonitorStatus();
+    void forkedRecord();
+    bool getRecordingReadyStatus();
+    void setRecordingReadyStatus(bool status);
   private:
     AnimationMonitor m_am;
     ros::Publisher m_view_control_pub;
     ros::Publisher m_display_traj_pub;
     ros::Publisher m_planning_scene_pub;
     ros::Subscriber m_animation_status_sub;
+    ros::Publisher m_animation_response_pub;
     ros::NodeHandle m_node_handle;
-    bool m_record_start;
+
+    char* m_recorder_argv[4];
+    bool m_recording_ready;
 };
 
 #endif
