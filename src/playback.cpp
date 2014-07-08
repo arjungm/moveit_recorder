@@ -13,6 +13,9 @@
 #include "moveit_recorder/AnimationRecorder.h"
 
 #include <moveit_recorder/AnimationRequest.h>
+#include <rosbag/bag.h>
+#include <rosbag/query.h>
+#include <rosbag/view.h>
 
 bool static ready;
 
@@ -34,7 +37,8 @@ int main(int argc, char** argv)
   desc.add_options()
     ("help", "Show help message")
     ("host", boost::program_options::value<std::string>(), "Host for the MongoDB.")
-    ("port", boost::program_options::value<std::size_t>(), "Port for the MongoDB.");
+    ("port", boost::program_options::value<std::size_t>(), "Port for the MongoDB.")
+    ("views",boost::program_options::value<std::string>(), "Bag file for viewpoints");
 
   boost::program_options::variables_map vm;
   boost::program_options::parsed_options po = boost::program_options::parse_command_line(argc, argv, desc);
@@ -54,7 +58,23 @@ int main(int argc, char** argv)
     moveit_warehouse::PlanningSceneStorage pss(host, port);
 
     ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
-    
+
+    //load the viewpoints
+    std::string bagfilename = vm.count("views") ? vm["views"].as<std::string>() : "";
+    std::vector<view_controller_msgs::CameraPlacement> views;
+    rosbag::Bag viewbag;
+    viewbag.open(bagfilename, rosbag::bagmode::Read);
+    std::vector<std::string> topics; topics.push_back("viewpoints");
+    rosbag::View view_t(viewbag, rosbag::TopicQuery(topics));
+    BOOST_FOREACH(rosbag::MessageInstance const m, view_t)
+    {
+      view_controller_msgs::CameraPlacement::ConstPtr i = m.instantiate<view_controller_msgs::CameraPlacement>();
+      if (i != NULL)
+        views.push_back(*i);
+    }
+    viewbag.close();
+    ROS_INFO("%d views loaded",(int)views.size());
+
     // response sub
     ros::Subscriber animation_sub = node_handle.subscribe("animation_response", 1, animationResponseCallback);
     while(animation_sub.getNumPublishers() < 1)
@@ -72,30 +92,6 @@ int main(int argc, char** argv)
       ROS_INFO("[Playback] Not enough subscribers to \"%s\" topic... ", "animation_request");
       sleep_t.sleep();
     }
-
-    // control the camera
-    view_controller_msgs::CameraPlacement view_msg;
-    view_msg.target_frame = "base_link";
-    view_msg.interpolation_mode = view_controller_msgs::CameraPlacement::SPHERICAL;
-    view_msg.time_from_start = ros::Duration(0.5);
-    std_msgs::Header header;
-    header.stamp = ros::Time::now();
-    header.frame_id = "base_link";
-    view_msg.eye.header = header;
-    view_msg.eye.point.x = 2.5;
-    view_msg.eye.point.y = -1;
-    view_msg.eye.point.z = 2;
-    view_msg.focus.header = header;
-    view_msg.focus.point.x = -0.21941;
-    view_msg.focus.point.y = 0.27017;
-    view_msg.focus.point.z = 0.52922;
-    view_msg.up.header = header;
-    view_msg.up.vector.x = 0;
-    view_msg.up.vector.y = 0;
-    view_msg.up.vector.z = 1;
-    view_msg.mouse_interaction_mode = view_controller_msgs::CameraPlacement::NO_CHANGE;
-    view_msg.interaction_disabled = true;
-    view_msg.allow_free_yaw_axis = false;
 
     // ask the warehouse for the scenes
     std::vector<std::string> ps_names;
@@ -134,7 +130,6 @@ int main(int argc, char** argv)
         std::vector<moveit_warehouse::RobotTrajectoryWithMetadata>::iterator traj_w_mdata = planning_results.begin();
         for(; traj_w_mdata!=planning_results.end(); ++traj_w_mdata)
         {
-
           moveit_msgs::RobotTrajectory rt_msg;
           rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(**traj_w_mdata);
           // retime it
@@ -143,22 +138,34 @@ int main(int argc, char** argv)
           bool result = retimer.retime(rt_msg);
           ROS_INFO("Retiming success? %s", result? "yes" : "no" );
 
-          moveit_recorder::AnimationRequest req;
-          req.camera_placement = view_msg;
-          req.planning_scene = ps_msg;
-          req.motion_plan_request = mpr_msg;
-          req.robot_trajectory = rt_msg;
-          req.filepath.data = "/tmp/video.ogv";
-
-          animation_pub.publish(req);
-          usleep(1000);
-          ready = false;
-          while(ros::ok() && !ready)
+          std::vector<view_controller_msgs::CameraPlacement>::iterator view_msg;
+          for(view_msg=views.begin(); view_msg!=views.end(); ++view_msg)
           {
-            ros::spinOnce(); //updates the ready status
+            moveit_recorder::AnimationRequest req;
+            
+            view_msg->time_from_start = ros::Duration(0.1);
+            ros::Time t_now = ros::Time::now();
+            view_msg->eye.header.stamp = t_now;
+            view_msg->focus.header.stamp = t_now;
+            view_msg->up.header.stamp = t_now;
+
+            req.camera_placement = *view_msg;
+            req.planning_scene = ps_msg;
+            req.motion_plan_request = mpr_msg;
+            req.robot_trajectory = rt_msg;
+            req.filepath.data = "/tmp/video.ogv";
+
+            animation_pub.publish(req);
             usleep(1000);
-          }
-          ROS_ERROR("RECORDING DONE!");
+            ready = false;
+            while(ros::ok() && !ready)
+            {
+              ros::spinOnce(); //updates the ready status
+              usleep(1000);
+            }
+            ROS_INFO("RECORDING DONE!");
+            sleep(2);
+          }//view
         }//traj
       }//query
     }//scene
