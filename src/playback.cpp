@@ -176,7 +176,7 @@ int main(int argc, char** argv)
         << std::endl << ex.what());
   }
 
-  ROS_ERROR("Successfully performed trajectory playback");
+  ROS_INFO("Successfully performed trajectory playback");
   ros::shutdown();
   return 0;
 }
