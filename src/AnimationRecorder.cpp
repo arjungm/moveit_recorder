@@ -1,6 +1,8 @@
 #include "moveit_recorder/AnimationRecorder.h"
 #include <sstream>
 #include <signal.h>
+#include <sys/wait.h>
+
 
 AnimationMonitor::AnimationMonitor() : m_last_msg(false), m_status(false) {}
 
@@ -127,6 +129,31 @@ void AnimationRecorder::forkedRecord()
     kill(pid,SIGINT);
     usleep(1000);
     
+    // monitor child until dead
+    int status;
+    pid_t endpid = waitpid(pid, &status, WNOHANG|WUNTRACED);
+    while(endpid!=pid)
+    {
+      endpid = waitpid(pid, &status, WNOHANG|WUNTRACED);
+      if (endpid == -1) {
+        // error calling waitpid
+        perror("waitpid error");
+        exit(EXIT_FAILURE);
+      }
+      else if (endpid == 0) {        
+        // child still running
+        usleep(1000);
+      }
+      else if (endpid == pid) {
+        // child ended
+        if (WIFEXITED(status))
+          ROS_INFO("Child ended normally.");
+        else if (WIFSIGNALED(status))
+          ROS_INFO("Child ended because on an uncaught signal");
+        else if (WIFSTOPPED(status))
+          ROS_INFO("Child process has stopped.");
+      }
+    }
     response_msg.data=true;
     m_animation_response_pub.publish(response_msg);
   }
