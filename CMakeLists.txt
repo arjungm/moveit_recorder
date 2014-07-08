@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   view_controller_msgs
   moveit_msgs
   std_msgs
+  rosbag
   message_generation
   roscpp
 )
@@ -115,6 +116,9 @@ target_link_libraries(playback_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 add_executable(recorder_node src/AnimationRecorder.cpp)
 target_link_libraries(recorder_node ${catkin_LIBRARIES})
+
+add_executable(viewpoint_recorder_node src/viewpoint_recorder_node.cpp)
+target_link_libraries(viewpoint_recorder_node ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
