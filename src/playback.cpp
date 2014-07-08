@@ -153,7 +153,9 @@ int main(int argc, char** argv)
             req.planning_scene = ps_msg;
             req.motion_plan_request = mpr_msg;
             req.robot_trajectory = rt_msg;
-            req.filepath.data = "/tmp/video.ogv";
+            req.filepath.data = "/home/amenon/ros_workspace/src/moveit_recorder/test/videos/pr2.ogv";
+            //TODO read file path
+            //TODO make file name
 
             animation_pub.publish(req);
             usleep(1000);
@@ -164,7 +166,6 @@ int main(int argc, char** argv)
               usleep(1000);
             }
             ROS_INFO("RECORDING DONE!");
-            sleep(2);
           }//view
         }//traj
       }//query
