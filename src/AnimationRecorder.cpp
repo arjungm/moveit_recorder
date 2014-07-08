@@ -119,13 +119,11 @@ void AnimationRecorder::forkedRecord()
       ros::spinOnce();
       usleep(1000);
     }
-    ROS_WARN("Animation started...");
     while(ros::ok() && getMonitorStatus())
     {
       ros::spinOnce();
       m_animation_response_pub.publish(response_msg);
     }
-    ROS_WARN("Animation terminated...");
     kill(pid,SIGINT);
     usleep(1000);
     
