@@ -45,8 +45,10 @@
 
   <arg name="port" default="33829" />
 
+  <arg name="views" default="/tmp/test.bag" />
+
   <node name="playback" pkg="moveit_recorder" type="playback_node" 
-    args="--host $(arg host) --port $(arg port)" respawn="false" output="screen">
+    args="--host $(arg host) --port $(arg port) --views $(arg views)" respawn="false" output="screen">
   </node>
 
 </launch>
