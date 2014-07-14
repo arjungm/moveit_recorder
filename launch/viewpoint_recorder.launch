@@ -8,7 +8,10 @@
     <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
   </node>
 
-  <node name="viewpoint_recorder" pkg="moveit_recorder" type="viewpoint_recorder_node" respawn="false" output="screen">
+  <arg name="save_dir" default="$(find moveit_recorder)/test/view.bag" />
+
+  <node name="viewpoint_recorder" pkg="moveit_recorder" type="viewpoint_recorder_node" 
+    args="--save_dir $(arg save_dir)" respawn="false" output="screen">
   </node>
   
 </launch>
