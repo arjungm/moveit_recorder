@@ -6,6 +6,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <view_controller_msgs/CameraPlacement.h>
 
@@ -158,9 +159,13 @@ int main(int argc, char** argv)
             req.planning_scene = ps_msg;
             req.motion_plan_request = mpr_msg;
             req.robot_trajectory = rt_msg;
-            req.filepath.data = "/home/amenon/ros_workspace/src/moveit_recorder/test/videos/pr2.ogv";
-            //TODO read file path
-            //TODO make file name
+           
+            //date and time based filename
+            boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+            boost::filesystem::path filename(boost::posix_time::to_simple_string(now) );
+            filename /= ".ogv";
+            boost::filesystem::path filepath = storage_dir / filename;
+            req.filepath.data = filepath.string();
 
             animation_pub.publish(req);
             usleep(1000);
