@@ -5,7 +5,7 @@
 #include <moveit/warehouse/planning_scene_storage.h>
 
 #include <boost/program_options.hpp>
-
+#include <boost/filesystem.hpp>
 
 #include <view_controller_msgs/CameraPlacement.h>
 
@@ -39,6 +39,7 @@ int main(int argc, char** argv)
     ("host", boost::program_options::value<std::string>(), "Host for the MongoDB.")
     ("port", boost::program_options::value<std::size_t>(), "Port for the MongoDB.")
     ("views",boost::program_options::value<std::string>(), "Bag file for viewpoints");
+    ("save_dir",boost::program_options::value<std::string>(), "Directory for saving videos");
 
   boost::program_options::variables_map vm;
   boost::program_options::parsed_options po = boost::program_options::parse_command_line(argc, argv, desc);
@@ -59,7 +60,11 @@ int main(int argc, char** argv)
 
     ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
 
-    //load the viewpoints
+    // set up the storage directory
+    boost::filesystem::path storage_dir( vm.count("save_dir") ? vm["save_dir"].as<std::string>() : "/tmp" );
+    boost::filesystem::create_directories( storage_dir );
+
+    // load the viewpoints
     std::string bagfilename = vm.count("views") ? vm["views"].as<std::string>() : "";
     std::vector<view_controller_msgs::CameraPlacement> views;
     rosbag::Bag viewbag;
