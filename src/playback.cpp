@@ -177,8 +177,8 @@ int main(int argc, char** argv)
             req.motion_plan_request = mpr_msg;
             req.robot_trajectory = rt_msg;
             
+            // same filename, counter for viewpoint
             std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
-            
             bag.write(filepath.string(), ros::Time::now(), req.filepath);
             req.filepath.data = (filepath/ext).string();
            
