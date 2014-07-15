@@ -65,6 +65,11 @@ int main(int argc, char** argv)
     boost::filesystem::path storage_dir( vm.count("save_dir") ? vm["save_dir"].as<std::string>() : "/tmp" );
     boost::filesystem::create_directories( storage_dir );
 
+    // create bag file to track the associated video to the scene, query, and traj that spawned it
+    boost::filesystem::path bagpath = storage_dir / "video_lookup.bag";
+    rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Write);
+    bag.close();
+
     // load the viewpoints
     std::string bagfilename = vm.count("views") ? vm["views"].as<std::string>() : "";
     std::vector<view_controller_msgs::CameraPlacement> views;
@@ -143,7 +148,19 @@ int main(int argc, char** argv)
           retimer.configure(ps_msg, mpr_msg);
           bool result = retimer.retime(rt_msg);
           ROS_INFO("Retiming success? %s", result? "yes" : "no" );
+            
+          //date and time based filename
+          boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+          boost::filesystem::path filename(boost::posix_time::to_simple_string(now) );
+          boost::filesystem::path filepath = storage_dir / filename;
 
+          // save into lookup
+          rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Append);
+          bag.write(filepath.string(), ros::Time::now(), ps_msg);
+          bag.write(filepath.string(), ros::Time::now(), mpr_msg);
+          bag.write(filepath.string(), ros::Time::now(), rt_msg);
+          
+          int view_counter=0;
           std::vector<view_controller_msgs::CameraPlacement>::iterator view_msg;
           for(view_msg=views.begin(); view_msg!=views.end(); ++view_msg)
           {
@@ -159,17 +176,17 @@ int main(int argc, char** argv)
             req.planning_scene = ps_msg;
             req.motion_plan_request = mpr_msg;
             req.robot_trajectory = rt_msg;
+            
+            std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
+            
+            bag.write(filepath.string(), ros::Time::now(), req.filepath);
+            req.filepath.data = (filepath/ext).string();
            
-            //date and time based filename
-            boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-            boost::filesystem::path filename(boost::posix_time::to_simple_string(now) );
-            filename /= ".ogv";
-            boost::filesystem::path filepath = storage_dir / filename;
-            req.filepath.data = filepath.string();
-
             animation_pub.publish(req);
             usleep(1000);
             ready = false;
+
+            // blocks until recording and encoding is finish
             while(ros::ok() && !ready)
             {
               ros::spinOnce(); //updates the ready status
@@ -177,6 +194,7 @@ int main(int argc, char** argv)
             }
             ROS_INFO("RECORDING DONE!");
           }//view
+          bag.close();
         }//traj
       }//query
     }//scene
