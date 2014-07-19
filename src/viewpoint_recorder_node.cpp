@@ -1,9 +1,8 @@
 #include <ros/ros.h>
 #include <rosbag/bag.h>
-#include <termios.h>
-
 #include <boost/program_options.hpp>
 #include <view_controller_msgs/CameraPlacement.h>
+#include <moveit_recorder/cli_controller.h>
 
 static view_controller_msgs::CameraPlacement last_recorded_msg;
 
@@ -11,21 +10,6 @@ void recordViewpointCallback(const boost::shared_ptr<view_controller_msgs::Camer
 {
   last_recorded_msg = *msg;
 }
-
-int getch()
-{
-  static struct termios oldt, newt;
-  tcgetattr( STDIN_FILENO, &oldt);           // save old settings
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON);                 // disable buffering      
-  tcsetattr( STDIN_FILENO, TCSANOW, &newt);  // apply new settings
-
-  int c = getchar();  // read character (non-blocking)
-
-  tcsetattr( STDIN_FILENO, TCSANOW, &oldt);  // restore old settings
-  return c;
-}
-
 
 int main(int argc, char** argv)
 {
@@ -72,7 +56,7 @@ int main(int argc, char** argv)
       usleep(1000);
 
       // use non blocking keygrab
-      int c = getch();
+      int c = recorder_utils::getch();
       if(c=='s')
       {
         ROS_INFO("Writing to bag...");
