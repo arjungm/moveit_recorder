@@ -107,8 +107,9 @@ include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
-add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp) 
-target_link_libraries(moveit_recorder_lib ${catkin_LIBRARIES})
+add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp
+                                src/cli_controller.cpp) 
+target_link_libraries(moveit_recorder_lib  ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(playback_node src/playback.cpp)
@@ -118,7 +119,10 @@ add_executable(recorder_node src/AnimationRecorder.cpp)
 target_link_libraries(recorder_node ${catkin_LIBRARIES})
 
 add_executable(viewpoint_recorder_node src/viewpoint_recorder_node.cpp)
-target_link_libraries(viewpoint_recorder_node ${catkin_LIBRARIES})
+target_link_libraries(viewpoint_recorder_node moveit_recorder_lib ${catkin_LIBRARIES})
+
+add_executable(benchmark_designer_node src/BenchmarkDesigner.cpp)
+target_link_libraries(benchmark_designer_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
