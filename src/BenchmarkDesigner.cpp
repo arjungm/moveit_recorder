@@ -1,57 +1,46 @@
 #include <ros/ros.h>
 #include <moveit_recorder/cli_controller.h>
 #include <moveit/warehouse/planning_scene_storage.h>
+#include <curses.h>
 
-static bool message_set;
-static moveit_msgs::PlanningScene current_scene;
-
-void updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
+class BaseRobotControl
 {
-  if(!(msg->is_diff))
-  {
-    current_scene = *msg;
-    message_set = true;
-  }
-  else
-    current_scene.robot_state = msg->robot_state;
-}
-
-bool getControlMessage(int input, moveit_msgs::PlanningScene& msg)
-{
-  moveit_msgs::PlanningScene update_msg(current_scene);
-  for(int i=0; i<update_msg.robot_state.multi_dof_joint_state.joint_names.size();++i)
-    ROS_INFO("%s", update_msg.robot_state.multi_dof_joint_state.joint_names[i].c_str());
-  ROS_INFO("x: %f y: %f z: %f", update_msg.robot_state.multi_dof_joint_state.transforms[0].translation.x,
-                                update_msg.robot_state.multi_dof_joint_state.transforms[0].translation.y,
-                                update_msg.robot_state.multi_dof_joint_state.transforms[0].translation.z);
-
-  switch(input)
-  {
-    case 'w':
-      update_msg.robot_state.multi_dof_joint_state.transforms[0].translation.x+=0.1;
-      ROS_INFO("[BaseControl] Forward");
-      goto shared;
-    case 'a':
-      update_msg.robot_state.multi_dof_joint_state.transforms[0].translation.y+=0.1;
-      ROS_INFO("[BaseControl] Left");
-      goto shared;
-    case 's':
-      update_msg.robot_state.multi_dof_joint_state.transforms[0].translation.x-=0.1;
-      ROS_INFO("[BaseControl] Backward");
-      goto shared;
-    case 'd':
-      update_msg.robot_state.multi_dof_joint_state.transforms[0].translation.y-=0.1;
-      ROS_INFO("[BaseControl] Right");
-      shared:
-        msg = update_msg;
-        return true;
-    default:
-      ROS_WARN("No command valid");
-      break;
-  }
-  return false;
-}
-
+  public:
+    BaseRobotControl(){}
+    ~BaseRobotControl(){}
+    void updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
+    {
+      m_current_scene = *msg;
+    }
+    moveit_msgs::PlanningScene getControlMessage(int dir)
+    {
+      moveit_msgs::PlanningScene copy_msg(m_current_scene);
+      switch(dir)
+      {
+        case 'w':
+          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.x+=0.1;
+          printw("[Forward]\n");
+          break;
+        case 'a':
+          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.y+=0.1;
+          printw("[Left]\n");
+          break; 
+        case 's':
+          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.x-=0.1;
+          printw("[Backward]\n");
+          break;
+        case 'd':
+          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.y-=0.1;
+          printw("[Right]\n");
+          break;
+        default:
+          break;
+      }
+      return copy_msg;
+    }
+  private:
+    moveit_msgs::PlanningScene m_current_scene;
+};
 
 int main(int argc, char** argv)
 {
@@ -85,49 +74,36 @@ int main(int argc, char** argv)
     // connect to the database
     std::string host = vm.count("host") ? vm["host"].as<std::string>() : "127.0.0.1";
     size_t port = vm.count("port") ? vm["port"].as<std::size_t>() : 33829;
-    message_set = false;
     // moveit_warehouse::PlanningSceneStorage pss(host, port);
     // ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
 
     // planning scene connection for editing in real time
     // publish diffs to change the robot status
+    BaseRobotControl brc;
     std::string planning_scene_topic = vm.count("planning_scene_topic") ? vm["planning_scene_topic"].as<std::string>() : "planning_scene";
     ros::Publisher ps_pub = node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic, 1);
-    ros::Subscriber ps_sub = node_handle.subscribe(planning_scene_topic, 1, updateRobotStateCallback);
-    
-    while(ps_sub.getNumPublishers() < 1)
-    {
-      ros::WallDuration sleep_t(0.5);
-      ROS_INFO("[Designer] Not enough publishers to \"%s\" topic... ", planning_scene_topic.c_str());
-      sleep_t.sleep();
-    }
-    
+    ros::Subscriber ps_sub = node_handle.subscribe(planning_scene_topic, 1, &BaseRobotControl::updateRobotStateCallback, &brc);
 
-    while(!message_set)
-    {
-      ros::spinOnce();
-      usleep(1000);
-      ROS_WARN("Initial planning scene information not set");
-    }
-
+    
     // spin and catch results
-    ROS_INFO("Beginning robot base control loop");
+    initscr();
+    noecho();
+    cbreak();
+    timeout(0);
+    int n=0;
     while(ros::ok())
     {
       ros::spinOnce();
       usleep(1000);
-
-      int key = recorder_utils::getch();
       
-      if(key=='q')
-        ros::shutdown();
-
+      int key = getch();
+      
       // process the command
-      moveit_msgs::PlanningScene scene_msg;
-      bool result = getControlMessage(key, scene_msg);
-      if(result)
-        ps_pub.publish( scene_msg );
+      moveit_msgs::PlanningScene update_scene = brc.getControlMessage(key);
+      ps_pub.publish( update_scene );
     }
+    nocbreak();
+    endwin();
   }
   catch(mongo_ros::DbConnectException &ex)
   {
