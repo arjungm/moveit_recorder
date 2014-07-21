@@ -28,6 +28,7 @@
     <arg name="fake_execution" value="true"/>
     <arg name="info" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
+    <arg name="publish_monitored_planning_scene" value="false" />
   </include>
 
   <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"
@@ -38,7 +39,7 @@
   <!-- LAUNCH PLAYBACK NODE -->
   <arg name="host" default="127.0.0.1" />
   <arg name="port" default="33829" />
-  <node name="designer" pkg="moveit_recorder" type="benchmark_designer_node" args="--host $(arg host) --port $(arg port)" respawn="false" output="screen">
+  <node name="designer" pkg="moveit_recorder" type="benchmark_designer_node" args="--host $(arg host) --port $(arg port)" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
   </node>
   
 
