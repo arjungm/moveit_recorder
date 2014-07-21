@@ -1,45 +1,108 @@
 #include <ros/ros.h>
 #include <moveit_recorder/cli_controller.h>
 #include <moveit/warehouse/planning_scene_storage.h>
-#include <curses.h>
+#include <iostream>
+#include <tf/transform_datatypes.h>
 
 class BaseRobotControl
 {
   public:
-    BaseRobotControl(){}
+    BaseRobotControl(ros::NodeHandle nh, std::string planning_scene_topic) 
+    : m_node_handle(nh), 
+      m_scene_initialized(false), 
+      m_publish(true),
+      m_planning_scene_topic(planning_scene_topic)
+    {
+      m_ps_pub = m_node_handle.advertise<moveit_msgs::PlanningScene>(m_planning_scene_topic,1);
+    }
     ~BaseRobotControl(){}
     void updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
     {
-      m_current_scene = *msg;
+      if(!m_scene_initialized)
+      {
+        m_current_scene = *msg;
+        m_scene_initialized = true;
+        //update yaw
+        tf::Quaternion qt;
+        tf::quaternionMsgToTF( m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation, qt);
+        m_yaw = tf::getYaw(qt);
+      }
+      if(m_publish)
+        m_ps_pub.publish(m_current_scene);
     }
     moveit_msgs::PlanningScene getControlMessage(int dir)
     {
-      moveit_msgs::PlanningScene copy_msg(m_current_scene);
       switch(dir)
       {
         case 'w':
-          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.x+=0.1;
-          printw("[Forward]\n");
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x+=0.1;
+          ROS_INFO("[Forward] x=%f y=%f",
+                              m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
+                              m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'a':
-          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.y+=0.1;
-          printw("[Left]\n");
-          break; 
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y+=0.1;
+          ROS_INFO("[Left] x=%f y=%f",
+                           m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
+                           m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
+         break; 
         case 's':
-          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.x-=0.1;
-          printw("[Backward]\n");
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x-=0.1;
+          ROS_INFO("[Backward] x=%f y=%f",
+                               m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
+                               m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'd':
-          copy_msg.robot_state.multi_dof_joint_state.transforms[0].translation.y-=0.1;
-          printw("[Right]\n");
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y-=0.1;
+          ROS_INFO("[Right] x=%f y=%f",
+                            m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
+                            m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
+        case 'q':
+          m_yaw += M_PI/8;
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
+          ROS_INFO("[Turn] Right by %f", M_PI/8);
+          break;
+        case 'e':
+          m_yaw -= M_PI/8;
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
+          ROS_INFO("[Turn] Right by %f", M_PI/8);
+          break;
+        case 'r':
+          ROS_INFO("[Reset] Scene is reset");
+          m_scene_initialized = false;
+          break;
+        case 'p':
+          ROS_INFO("[Toggle] Publishing is %s", !m_publish?"ON":"OFF");
+          m_publish = !m_publish;
+          break;
+        case 'x':
+          ROS_INFO("[Quit] Shutting down");
+          ros::shutdown();
         default:
           break;
       }
-      return copy_msg;
+      return m_current_scene;
+    }
+    bool isSceneInitialized() { return m_scene_initialized; }
+    void waitForScene()
+    {
+      ros::WallDuration sleep_t(0.5);
+      while(!isSceneInitialized())
+      {
+        ros::spinOnce();
+        ROS_WARN("[Designer] No scene is set, please load a scene from the RVIZ MoveIt plugin or publish it to the topic: \"%s\"", m_planning_scene_topic.c_str());
+        sleep_t.sleep();
+      }
     }
   private:
     moveit_msgs::PlanningScene m_current_scene;
+    ros::Publisher m_ps_pub;
+    ros::NodeHandle m_node_handle;
+    std::string m_planning_scene_topic;
+    double m_yaw;
+    bool m_scene_initialized;
+    bool m_publish;
 };
 
 int main(int argc, char** argv)
@@ -79,31 +142,29 @@ int main(int argc, char** argv)
 
     // planning scene connection for editing in real time
     // publish diffs to change the robot status
-    BaseRobotControl brc;
     std::string planning_scene_topic = vm.count("planning_scene_topic") ? vm["planning_scene_topic"].as<std::string>() : "planning_scene";
-    ros::Publisher ps_pub = node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic, 1);
-    ros::Subscriber ps_sub = node_handle.subscribe(planning_scene_topic, 1, &BaseRobotControl::updateRobotStateCallback, &brc);
 
+    // initialize the scene and control parser
+    BaseRobotControl brc(node_handle, planning_scene_topic);
+    ros::Subscriber ps_sub = node_handle.subscribe(planning_scene_topic, 1, &BaseRobotControl::updateRobotStateCallback, &brc);
+    brc.waitForScene();
     
     // spin and catch results
-    initscr();
-    noecho();
-    cbreak();
-    timeout(0);
-    int n=0;
+    moveit_msgs::PlanningScene update_scene;
     while(ros::ok())
     {
       ros::spinOnce();
       usleep(1000);
       
-      int key = getch();
+      char key;
+      std::cin >> key;
       
       // process the command
-      moveit_msgs::PlanningScene update_scene = brc.getControlMessage(key);
-      ps_pub.publish( update_scene );
+      update_scene = brc.getControlMessage(key);
+
+      // if the keypress is a reset, then a new scene needs to be loaded
+      brc.waitForScene();
     }
-    nocbreak();
-    endwin();
   }
   catch(mongo_ros::DbConnectException &ex)
   {
@@ -113,5 +174,6 @@ int main(int argc, char** argv)
   {
     //TODO catch possible exceptions from file io and directory creation
   }
+  ros::shutdown();
   return 0;
 }
