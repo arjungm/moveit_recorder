@@ -31,6 +31,8 @@
     <arg name="publish_monitored_planning_scene" value="false" />
   </include>
 
+  <node name="planning_scene_throttler" type="throttle" pkg="topic_tools" args="messages /planning_scene 2" />  
+
   <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"
       args="$(arg command_args)" output="screen">
     <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
