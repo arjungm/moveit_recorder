@@ -17,6 +17,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
 )
 
+find_package( PkgConfig REQUIRED )
+pkg_check_modules( ncurses++ REQUIRED ncurses++ )
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -122,7 +125,9 @@ add_executable(viewpoint_recorder_node src/viewpoint_recorder_node.cpp)
 target_link_libraries(viewpoint_recorder_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 add_executable(benchmark_designer_node src/BenchmarkDesigner.cpp)
-target_link_libraries(benchmark_designer_node moveit_recorder_lib ${catkin_LIBRARIES})
+target_link_libraries(benchmark_designer_node moveit_recorder_lib 
+                                              ${ncurses++_LIBRARIES}
+                                              ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
