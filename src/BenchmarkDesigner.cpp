@@ -35,38 +35,43 @@ class BaseRobotControl
       switch(dir)
       {
         case 'w':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x+=0.1;
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x+=0.05;
           ROS_INFO("[Forward] x=%f y=%f",
                               m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
                               m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'a':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y+=0.1;
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y+=0.05;
           ROS_INFO("[Left] x=%f y=%f",
                            m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
                            m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
          break; 
         case 's':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x-=0.1;
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x-=0.05;
           ROS_INFO("[Backward] x=%f y=%f",
                                m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
                                m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'd':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y-=0.1;
+          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y-=0.05;
           ROS_INFO("[Right] x=%f y=%f",
                             m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
                             m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'q':
-          m_yaw += M_PI/8;
+          m_yaw += M_PI/32;
           m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
-          ROS_INFO("[Turn] Right by %f", M_PI/8);
+          ROS_INFO("[Turn] Right by %f", M_PI/32);
           break;
         case 'e':
-          m_yaw -= M_PI/8;
+          m_yaw -= M_PI/32;
           m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
-          ROS_INFO("[Turn] Right by %f", M_PI/8);
+          ROS_INFO("[Turn] Right by %f", M_PI/32);
+          break;
+        case 't':
+          for(int i=0; i<m_current_scene.robot_state.joint_state.name.size(); i++)
+            ROS_INFO("[%20s] %f", m_current_scene.robot_state.joint_state.name[i].c_str(),
+                                  m_current_scene.robot_state.joint_state.position[i]);
           break;
         case 'r':
           ROS_INFO("[Reset] Scene is reset");
