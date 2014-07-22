@@ -8,7 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_warehouse
   moveit_ros_planning_interface
+  interactive_markers
   moveit_ros_move_group
+  geometry_msgs
   view_controller_msgs
   moveit_msgs
   std_msgs
@@ -73,6 +75,7 @@ add_message_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
+  geometry_msgs
   view_controller_msgs
   moveit_msgs
   std_msgs  # Or other packages containing msgs
@@ -108,7 +111,10 @@ include_directories(${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
 add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp
-                                src/cli_controller.cpp) 
+                                src/cli_controller.cpp
+                                src/InteractiveRobotMarker.cpp
+                                src/InteractiveRobot.cpp
+                                src/pose_string.cpp) 
 target_link_libraries(moveit_recorder_lib  ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
