@@ -278,9 +278,6 @@ bool InteractiveRobot::setBasePose(double x, double y, double theta)
   positions.push_back(y);
   positions.push_back(theta);
   robot_state_->setJointPositions(base_joint_, positions);
-  //robot_state_->setJointPositions("world_joint/x",&x);
-  //robot_state_->setJointPositions("world_joint/y",&y);
-  //robot_state_->setJointPositions("world_joint/theta",&theta);
   base_changed_=true;
   scheduleUpdate();
 }
