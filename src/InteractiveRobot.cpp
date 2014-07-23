@@ -10,6 +10,7 @@ InteractiveRobot::InteractiveRobot(
     const std::string& robot_description,
     const std::string& from_scene_topic,
     const std::string& to_scene_topic,
+    const std::string& to_scene_pose_topic,
     const std::string& display_robot_topic,
     const std::string& marker_topic,
     const std::string& imarker_topic) :
@@ -38,6 +39,7 @@ InteractiveRobot::InteractiveRobot(
   ROS_INFO("Interactivity Started");
   // create a RobotState to keep track of the current robot pose
   marker_robot_state_publisher_ = nh_.advertise<moveit_msgs::RobotState>(to_scene_topic,1);
+  marker_robot_pose_publisher_ = nh_.advertise<geometry_msgs::Pose>(to_scene_pose_topic,1);
   robot_state_subscriber_ = nh_.subscribe(from_scene_topic,1,&InteractiveRobot::updateRobotStateCallback, this);
   // load from message
   ros::WallDuration wait_t(1);
@@ -62,8 +64,8 @@ InteractiveRobot::InteractiveRobot(
 
   // Prepare to move the "right_arm" group
   group_ = robot_model_->getJointModelGroup("right_arm");
-  std::string end_link = group_->getLinkModelNames().back();
-  desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link);
+  end_link_ = group_->getLinkModelNames().back();
+  desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link_);
   desired_base_link_pose_ = robot_state_->getGlobalLinkTransform("base_link");
   
   // Create a marker to control the "right_arm" group
@@ -250,8 +252,8 @@ void InteractiveRobot::setGroup(const std::string& name)
       throw RobotLoadException();
   }
   group_ = group;
-  std::string end_link = group_->getLinkModelNames().back();
-  desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link);
+  end_link_ = group_->getLinkModelNames().back();
+  desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link_);
   if (imarker_robot_)
   {
     imarker_robot_->move(desired_group_end_link_pose_);
@@ -292,4 +294,9 @@ void InteractiveRobot::publishRobotState()
   moveit_msgs::RobotState rs_msg;
   robot_state::robotStateToRobotStateMsg(*robot_state_, rs_msg);
   marker_robot_state_publisher_.publish(rs_msg);
+
+  geometry_msgs::Pose pose_msg;
+  Eigen::Affine3d pose = robot_state_->getGlobalLinkTransform(end_link_);
+  tf::poseEigenToMsg(pose, pose_msg);
+  marker_robot_pose_publisher_.publish(pose_msg);
 }

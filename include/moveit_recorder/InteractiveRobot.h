@@ -19,6 +19,7 @@ class InteractiveRobot {
         const std::string& robot_description = "robot_description",
         const std::string& from_scene_topic = "to_marker_state",
         const std::string& to_scene_topic = "from_marker_state",
+        const std::string& to_scene_pose_topic = "from_marker_pose",
         const std::string& display_robot_topic = "interactive_robot_state",
         const std::string& marker_topic = "interactive_robot_markers",
         const std::string& imarker_topic = "interactive_robot_imarkers");
@@ -83,6 +84,7 @@ class InteractiveRobot {
     ros::Publisher robot_state_publisher_;
     ros::Subscriber robot_state_subscriber_;
     ros::Publisher marker_robot_state_publisher_;
+    ros::Publisher marker_robot_pose_publisher_;
     interactive_markers::InteractiveMarkerServer interactive_marker_server_;
     IMarker *imarker_robot_;
     IMarker *imarker_base_;
@@ -97,6 +99,7 @@ class InteractiveRobot {
     const robot_state::JointModel* base_joint_;
     Eigen::Affine3d desired_group_end_link_pose_;
     Eigen::Affine3d desired_base_link_pose_;
+    std::string end_link_;
 
     /* user callback function */
     boost::function<void (InteractiveRobot& robot)> user_callback_;
