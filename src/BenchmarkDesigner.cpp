@@ -15,8 +15,6 @@ int main(int argc, char** argv)
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  sleep(20);
-
   boost::program_options::options_description desc;
   desc.add_options()
     ("help", "Show help message")
