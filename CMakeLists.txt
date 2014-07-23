@@ -131,6 +131,9 @@ add_executable(benchmark_designer_node src/BenchmarkDesigner.cpp)
 target_link_libraries(benchmark_designer_node moveit_recorder_lib 
                                               ${catkin_LIBRARIES})
 
+add_executable(markers_node src/start_goal_marker_nodes.cpp)
+target_link_libraries(markers_node moveit_recorder_lib ${catkin_LIBRARIES})
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(moveit_recorder_node moveit_recorder_generate_messages_cpp)
