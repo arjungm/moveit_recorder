@@ -37,13 +37,35 @@
       args="$(arg command_args)" output="screen">
     <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
   </node>
-
-  <node name="start_marker" pkg="moveit_recorder" type="markers_node" respawn="false" output="screen" />
   
+  <arg name="from_marker_topic" default="from_marker_state" />
+  <arg name="from_marker_pose_topic" default="from_marker_pose" />
+  <arg name="to_marker_topic" default="to_marker_state" />
+
+  <arg name="display_robot_topic" default="interactive_robot_state" />
+  <arg name="robot_marker_topic" default="interactive_robot_markers" />
+  <arg name="interactive_marker_topic" default="interactive_robot_imarkers" />
+
+  <node name="start_marker" pkg="moveit_recorder" type="markers_node" respawn="false" output="screen"
+        args="--display_robot_topic $(arg display_robot_topic) 
+              --robot_marker_topic $(arg robot_marker_topic) 
+              --interactive_marker_topic $(arg interactive_marker_topic) 
+              --from_marker_topic $(arg from_marker_topic) 
+              --from_marker_pose_topic $(arg from_marker_pose_topic) 
+              --to_marker_topic $(arg to_marker_topic)">
+  </node>
+
   <arg name="host" default="127.0.0.1" />
   <arg name="port" default="33829" />
-  <node name="designer" pkg="moveit_recorder" type="benchmark_designer_node" args="--host $(arg host) --port $(arg port)" respawn="false" output="screen">
+  <arg name="planning_scene_topic" default="planning_scene" />
+  <arg name="save_dir" default="/tmp/" />
+  <node name="designer" pkg="moveit_recorder" type="benchmark_designer_node" respawn="false" output="screen"
+        args="--host $(arg host) 
+              --port $(arg port) 
+              --from_marker_topic $(arg from_marker_topic) 
+              --from_marker_pose_topic $(arg from_marker_pose_topic) 
+              --to_marker_topic $(arg to_marker_topic) 
+              --save_dir $(arg save_dir) 
+              --planning_scene_topic $(arg planning_scene_topic)">
   </node>
-  
-
 </launch>
