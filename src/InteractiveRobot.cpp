@@ -79,7 +79,7 @@ InteractiveRobot::InteractiveRobot(
                               desired_base_link_pose_, 
                               "/base_footprint",
                               boost::bind(movedRobotBaseMarkerCallback, this, _1), 
-                              IMarker::POS);
+                              IMarker::PLANAR);
   
 
   // start publishing timer.
