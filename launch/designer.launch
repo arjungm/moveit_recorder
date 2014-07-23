@@ -37,11 +37,12 @@
       args="$(arg command_args)" output="screen">
     <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
   </node>
+
+  <node name="start_marker" pkg="moveit_recorder" type="markers_node" respawn="false" output="screen" />
   
-  <!-- LAUNCH PLAYBACK NODE -->
   <arg name="host" default="127.0.0.1" />
   <arg name="port" default="33829" />
-  <node name="designer" pkg="moveit_recorder" type="benchmark_designer_node" args="--host $(arg host) --port $(arg port)" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
+  <node name="designer" pkg="moveit_recorder" type="benchmark_designer_node" args="--host $(arg host) --port $(arg port)" respawn="false" output="screen">
   </node>
   
 
