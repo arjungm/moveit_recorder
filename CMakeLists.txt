@@ -112,6 +112,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 ## Declare a cpp library
 add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp
                                 src/cli_controller.cpp
+                                src/SceneRobotControl.cpp
                                 src/InteractiveRobotMarker.cpp
                                 src/InteractiveRobot.cpp
                                 src/pose_string.cpp) 
