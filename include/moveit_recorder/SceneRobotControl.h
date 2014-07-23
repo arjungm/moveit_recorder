@@ -23,6 +23,17 @@ class SceneRobotControl
     void getControlMessage(int dir);
     bool isSceneInitialized();
     void waitForScene();
+  protected:
+
+    void writePositionsToFile(const std::string& filepath, 
+                              const std::string& scene_name,
+                              const std::vector<std::string>& names,
+                              const std::vector<moveit_msgs::RobotState>& positions);
+    void writePosesToFile(const std::string& filepath,
+                          const std::string& scene_name,
+                          const std::vector<std::string>& names,
+                          const std::vector<geometry_msgs::Pose>& poses);
+    
   private:
 
     moveit_msgs::PlanningScene m_current_scene;
@@ -48,10 +59,10 @@ class SceneRobotControl
     bool m_scene_initialized;
 
     size_t m_query_num;
-    std::vector< std::string > m_query_position_names;
-    std::vector< std::string > m_query_6dofpose_names;
-    std::vector< moveit_msgs::RobotState > m_query_positions;
-    std::vector< double > m_query_6dofposes;
+    std::vector<std::string> m_query_position_names;
+    std::vector<std::string> m_query_6dofpose_names;
+    std::vector<moveit_msgs::RobotState> m_query_positions;
+    std::vector<geometry_msgs::Pose> m_query_6dofposes;
 };
 
 #endif

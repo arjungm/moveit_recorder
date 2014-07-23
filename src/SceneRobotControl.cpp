@@ -2,6 +2,23 @@
 #include <boost/filesystem.hpp>
 #include <tf/transform_datatypes.h>
 #include <tf/tf.h>
+#include <iostream>
+#include <fstream>
+
+
+inline void getRPY(const geometry_msgs::Pose& pose, double& roll, double& pitch, double& yaw)
+{
+  tf::Quaternion orientation;
+  tf::quaternionMsgToTF(pose.orientation, orientation);
+  tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
+}
+
+inline void getRPY(const geometry_msgs::Transform& transform, double& roll, double& pitch, double& yaw)
+{
+  tf::Quaternion orientation;
+  tf::quaternionMsgToTF(transform.rotation, orientation);
+  tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
+}
 
 SceneRobotControl::SceneRobotControl(ros::NodeHandle nh, 
     const std::string& planning_scene_topic,
@@ -15,7 +32,8 @@ SceneRobotControl::SceneRobotControl(ros::NodeHandle nh,
   m_from_marker_topic(from_marker_topic),
   m_from_marker_pose_topic(from_marker_pose_topic),
   m_to_marker_topic(to_marker_topic),
-  m_query_num(0)
+  m_query_num(0),
+  m_query_file_location(query_save_location)
 {
   // publishers
   m_planning_scene_publisher = m_node_handle.advertise<moveit_msgs::PlanningScene>(m_planning_scene_topic,1);
@@ -57,21 +75,81 @@ void SceneRobotControl::markerRobotStateCallback(const boost::shared_ptr<moveit_
   m_planning_scene_publisher.publish(m_current_scene); // to rviz & move group
 }
 
+void SceneRobotControl::writePositionsToFile(const std::string& filepath, 
+                                             const std::string& scene_name,
+                                             const std::vector<std::string>& names,
+                                             const std::vector<moveit_msgs::RobotState>& p)
+{
+  double roll, pitch, yaw;
+  std::ofstream file;
+  file.open(filepath.c_str());
+  file << scene_name << std::endl;
+  file << "start" << std::endl;
+  file << names.size() << std::endl;
+  for(size_t i=0; i<names.size(); i++)
+  {
+    file << names[i] << std::endl;
+    for(size_t j=0; j<p[i].joint_state.name.size(); j++)
+      file << p[i].joint_state.name[j] << " = " << p[i].joint_state.position[j] << std::endl;
+    
+    // TODO this is hard coded... want to get the world joint better
+    sensor_msgs::MultiDOFJointState mdjs = p[i].multi_dof_joint_state;
+    file << mdjs.joint_names[0] << "/x = " << mdjs.transforms[0].translation.x << std::endl;
+    file << mdjs.joint_names[0] << "/y = " << mdjs.transforms[0].translation.y << std::endl;
+    getRPY(mdjs.transforms[0], roll, pitch, yaw);
+    file << mdjs.joint_names[0] << "/theta = " << yaw << std::endl;
+    file << "." << std::endl;
+  }
+  file.close();
+}
+
+void SceneRobotControl::writePosesToFile(const std::string& filepath,
+                                         const std::string& scene_name,
+                                         const std::vector<std::string>& names,
+                                         const std::vector<geometry_msgs::Pose>& poses)
+{
+  double roll, pitch, yaw;
+  std::ofstream file;
+  file.open(filepath.c_str(), std::ios::out | std::ios::app);
+  file << "goal" << std::endl;
+  file << names.size() << std::endl;
+  for(size_t i=0; i<names.size(); i++)
+  {
+    file << "link_constraint" << std::endl;
+    file << names[i] << std::endl;
+    file << "r_wrist_roll_link" << std::endl; // TODO read this from somewhere...
+    file << "xyz " << poses[i].position.x << " ";
+    file << poses[i].position.y << " ";
+    file << poses[i].position.z << std::endl;
+    getRPY(poses[i], roll, pitch, yaw);
+    file << "rpy " << roll << " " << pitch << " " << yaw << std::endl;
+    file << "." << std::endl;
+  }
+  file.close();
+}
+
 void SceneRobotControl::getControlMessage(int dir)
 {
   switch(dir)
   {
     case 'o':
     {
+      ROS_INFO("[Output]");
       for(int i=0; i<m_current_state.joint_state.name.size();++i)
-        ROS_INFO("[%40s] %20.2f", m_current_state.joint_state.name[i].c_str(), 
+        ROS_INFO("[%35s] %6.2f", m_current_state.joint_state.name[i].c_str(), 
                                 m_current_state.joint_state.position[i]);
 
-      tf::Quaternion orientation;
-      tf::quaternionMsgToTF(m_current_pose.orientation, orientation);
       double roll, pitch, yaw;
-      tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
+      getRPY(m_current_state.multi_dof_joint_state.transforms[0], roll, pitch, yaw);
+      ROS_INFO("x:%4.2f y:%4.2f z:%4.2f r:%4.2f p:%4.2f y:%4.2f",
+          m_current_state.multi_dof_joint_state.transforms[0].translation.x,
+          m_current_state.multi_dof_joint_state.transforms[0].translation.y,
+          m_current_state.multi_dof_joint_state.transforms[0].translation.z,
+          roll,
+          pitch,
+          yaw);
 
+      getRPY(m_current_pose, roll, pitch, yaw);
       ROS_INFO("x:%4.2f y:%4.2f z:%4.2f r:%4.2f p:%4.2f y:%4.2f",
                 m_current_pose.position.x,
                 m_current_pose.position.y,
@@ -79,6 +157,7 @@ void SceneRobotControl::getControlMessage(int dir)
                 roll,
                 pitch,
                 yaw);
+      break;
     }
     case 's':
     {
@@ -98,19 +177,20 @@ void SceneRobotControl::getControlMessage(int dir)
       goal_prefix_ss << m_query_num;
       m_query_6dofpose_names.push_back( goal_prefix_ss.str() );
 
+      m_query_6dofposes.push_back(m_current_pose);
+
       break;
     }
     case 'w':
     {
       boost::filesystem::path query_filepath( m_query_file_location );
-      query_filepath /= m_current_scene.name;
-      std::string query_file = query_filepath.leaf().string() + ".queries";
+      query_filepath = query_filepath / m_current_scene.name;
+      std::string query_file = query_filepath.string() + ".queries";
       ROS_INFO("[Write] Writing queries to file: %s", query_file.c_str());
       
       // write out to file the query locations (this saves the joint positions and poses for planning)
-
-      // overwrite the warehouse scene info (this saves the robot world position)
-
+      writePositionsToFile( query_file, m_current_scene.name, m_query_position_names, m_query_positions);
+      writePosesToFile(     query_file, m_current_scene.name, m_query_6dofpose_names, m_query_6dofposes);
       break;
     }
     case 'r':
