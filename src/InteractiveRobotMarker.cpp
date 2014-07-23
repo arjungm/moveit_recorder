@@ -71,6 +71,15 @@ void IMarker::makeAxisControl()
   imarker_.controls.push_back( control );
 }
 
+void IMarker::makePlanarControl()
+{
+  visualization_msgs::InteractiveMarkerControl control;
+  control.always_visible = true;
+  control.markers.push_back( makeAxisCyl(X) );
+  control.markers.push_back( makeAxisCyl(Z) );
+  imarker_.controls.push_back( control );
+}
+
 /* move to new pose */
 void IMarker::move(const Eigen::Affine3d& pose)
 {
@@ -102,6 +111,9 @@ void IMarker::initialize(
   {
     case POS:
       makeBallControl();
+      break;
+    case PLANAR:
+      makePlanarControl();
       break;
     case ORIENT:
     case BOTH:
@@ -139,6 +151,20 @@ void IMarker::initialize(
     {
       control.name = std::string("move_") + std::string(1,dirname[i]);
       control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+      imarker_.controls.push_back(control);
+    }
+    if(dof == PLANAR)
+    {
+      if(dirname[i]=='y')
+      {
+        control.name = std::string("rotate_") + std::string(1,dirname[i]);
+        control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+      }
+      else
+      {
+        control.name = std::string("move_") + std::string(1,dirname[i]);
+        control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+      }
       imarker_.controls.push_back(control);
     }
   }

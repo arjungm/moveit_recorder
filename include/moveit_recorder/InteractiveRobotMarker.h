@@ -15,7 +15,7 @@ class IMarker
 {
   public:
     /* degrees of freedom (3d position, 3d orientation, or both) */
-    enum Dof { BOTH, POS, ORIENT };
+    enum Dof { BOTH, POS, ORIENT, PLANAR };
 
     /** create an interactive marker at the origin */
     IMarker(interactive_markers::InteractiveMarkerServer& server,
@@ -91,6 +91,7 @@ class IMarker
     visualization_msgs::Marker makeBall();
     void makeBallControl();
     void makeAxisControl();
+    void makePlanarControl();
 
     visualization_msgs::InteractiveMarker imarker_;
     interactive_markers::InteractiveMarkerServer* server_;
