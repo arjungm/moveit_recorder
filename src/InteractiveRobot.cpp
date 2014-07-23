@@ -58,7 +58,7 @@ InteractiveRobot::InteractiveRobot(
     ROS_ERROR("Could not get RobotState from Model");
     throw RobotLoadException();
   }
-  // robot_state_->setToDefaultValues();
+  base_joint_ = robot_state_->getJointModel("world_joint");
 
   // Prepare to move the "right_arm" group
   group_ = robot_model_->getJointModelGroup("right_arm");
@@ -273,9 +273,14 @@ bool InteractiveRobot::setGroupPose(const Eigen::Affine3d& pose)
 
 bool InteractiveRobot::setBasePose(double x, double y, double theta)
 {
-  robot_state_->setJointPositions("world_joint/x",&x);
-  robot_state_->setJointPositions("world_joint/y",&y);
-  robot_state_->setJointPositions("world_joint/theta",&theta);
+  std::vector<double> positions;
+  positions.push_back(x);
+  positions.push_back(y);
+  positions.push_back(theta);
+  robot_state_->setJointPositions(base_joint_, positions);
+  //robot_state_->setJointPositions("world_joint/x",&x);
+  //robot_state_->setJointPositions("world_joint/y",&y);
+  //robot_state_->setJointPositions("world_joint/theta",&theta);
   base_changed_=true;
   scheduleUpdate();
 }
