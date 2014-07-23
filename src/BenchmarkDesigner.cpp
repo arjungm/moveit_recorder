@@ -13,8 +13,6 @@ class BaseRobotControl
                      const std::string& to_marker_topic = "to_marker_state")
     : m_node_handle(nh), 
       m_scene_initialized(false), 
-      m_publish(true),
-      m_arm_mode(false),
       m_planning_scene_topic(planning_scene_topic),
       m_from_marker_topic(from_marker_topic),
       m_to_marker_topic(to_marker_topic)
@@ -32,14 +30,6 @@ class BaseRobotControl
                                          this);
     }
     ~BaseRobotControl(){}
-    void onUpdate()
-    {
-      if(m_publish)
-      {
-        m_planning_scene_publisher.publish(m_current_scene); // to rviz
-        m_robot_state_publisher.publish(m_current_state); // to interactive robot
-      }
-    }
     void planningSceneCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
     {
       if(!m_scene_initialized)
@@ -47,82 +37,30 @@ class BaseRobotControl
         m_current_scene = *msg;
         m_current_state = msg->robot_state;
         m_scene_initialized = true;
-        tf::Quaternion qt;
-        tf::quaternionMsgToTF( m_current_state.multi_dof_joint_state.transforms[0].rotation, qt);
-        m_yaw = tf::getYaw(qt);
-        onUpdate();
+        m_planning_scene_publisher.publish(m_current_scene); // to rviz & move group
+        m_robot_state_publisher.publish(m_current_state); // to interactive robot
       }
     }
     void markerRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg)
     {
       m_current_state = *msg;
       m_current_scene.robot_state = *msg;
-      if(m_publish)
-        m_planning_scene_publisher.publish(m_current_scene);
-      // onUpdate();
+      m_planning_scene_publisher.publish(m_current_scene); // to rviz & move group
     }
     void getControlMessage(int dir)
     {
       switch(dir)
       {
-        case 'w':
-          m_current_state.multi_dof_joint_state.transforms[0].translation.x+=0.05;
-          ROS_INFO("[Forward] x=%f y=%f",
-                              m_current_state.multi_dof_joint_state.transforms[0].translation.x,
-                              m_current_state.multi_dof_joint_state.transforms[0].translation.y);
-          break;
-        case 'a':
-          m_current_state.multi_dof_joint_state.transforms[0].translation.y+=0.05;
-          ROS_INFO("[Left] x=%f y=%f",
-                           m_current_state.multi_dof_joint_state.transforms[0].translation.x,
-                           m_current_state.multi_dof_joint_state.transforms[0].translation.y);
-         break; 
-        case 's':
-          m_current_state.multi_dof_joint_state.transforms[0].translation.x-=0.05;
-          ROS_INFO("[Backward] x=%f y=%f",
-                               m_current_state.multi_dof_joint_state.transforms[0].translation.x,
-                               m_current_state.multi_dof_joint_state.transforms[0].translation.y);
-          break;
-        case 'd':
-          m_current_state.multi_dof_joint_state.transforms[0].translation.y-=0.05;
-          ROS_INFO("[Right] x=%f y=%f",
-                            m_current_state.multi_dof_joint_state.transforms[0].translation.x,
-                            m_current_state.multi_dof_joint_state.transforms[0].translation.y);
-          break;
-        case 'q':
-          m_yaw += M_PI/32;
-          m_current_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
-          ROS_INFO("[Turn] Right by %f", M_PI/32);
-          break;
-        case 'e':
-          m_yaw -= M_PI/32;
-          m_current_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
-          ROS_INFO("[Turn] Right by %f", M_PI/32);
-          break;
-        case 't':
-          for(int i=0; i<m_current_state.joint_state.name.size(); i++)
-            ROS_INFO("[%20s] %f", m_current_state.joint_state.name[i].c_str(),
-                                  m_current_state.joint_state.position[i]);
-          break;
         case 'r':
           ROS_INFO("[Reset] Scene is reset");
           m_scene_initialized = false;
           break;
-        case 'p':
-          ROS_INFO("[Toggle] Publishing is %s", !m_publish?"ON":"OFF");
-          m_publish = !m_publish;
-          break;
-        case 'm':
-          ROS_INFO("[Toggle] Arm Control Mode is %s", !m_arm_mode?"ON":"OFF");
-          m_arm_mode = !m_arm_mode;
         case 'x':
           ROS_INFO("[Quit] Shutting down");
           ros::shutdown();
         default:
           break;
       }
-      m_current_scene.robot_state = m_current_state;
-      onUpdate();
     }
     bool isSceneInitialized() { return m_scene_initialized; }
     void waitForScene()
@@ -152,10 +90,7 @@ class BaseRobotControl
     std::string m_from_marker_topic;
     std::string m_to_marker_topic;
     
-    double m_yaw;
     bool m_scene_initialized;
-    bool m_publish;
-    bool m_arm_mode;
 };
 
 int main(int argc, char** argv)
@@ -217,8 +152,7 @@ int main(int argc, char** argv)
       ros::spinOnce();
       usleep(1000);
       
-      char key;
-      std::cin >> key;
+      char key = recorder_utils::getch();
       
       // process the command
       brc.getControlMessage(key);

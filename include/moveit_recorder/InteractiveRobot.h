@@ -94,6 +94,7 @@ class InteractiveRobot {
 
     /* info about joint group we are manipulating */
     robot_state::JointModelGroup* group_;
+    const robot_state::JointModel* base_joint_;
     Eigen::Affine3d desired_group_end_link_pose_;
     Eigen::Affine3d desired_base_link_pose_;
 
