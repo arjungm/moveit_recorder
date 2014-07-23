@@ -17,7 +17,9 @@ class InteractiveRobot {
   public:
     InteractiveRobot(
         const std::string& robot_description = "robot_description",
-        const std::string& robot_topic = "interactive_robot_state",
+        const std::string& from_scene_topic = "to_marker_state",
+        const std::string& to_scene_topic = "from_marker_state",
+        const std::string& display_robot_topic = "interactive_robot_state",
         const std::string& marker_topic = "interactive_robot_markers",
         const std::string& imarker_topic = "interactive_robot_imarkers");
     ~InteractiveRobot();
@@ -28,6 +30,7 @@ class InteractiveRobot {
 
     /** Set the pose of the group we are manipulating */
     bool setGroupPose(const Eigen::Affine3d& pose);
+    bool setBasePose(double x, double y, double theta);
 
     /** set a callback to call when updates occur */
     void setUserCallback(boost::function<void (InteractiveRobot& robot)> callback)
@@ -69,12 +72,20 @@ class InteractiveRobot {
     static void movedRobotMarkerCallback(
         InteractiveRobot *robot,
         const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback );
+    static void movedRobotBaseMarkerCallback(
+        InteractiveRobot *robot,
+        const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback );
+    
+    void updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg);
 
     /* marker publishers */
     ros::NodeHandle nh_;
     ros::Publisher robot_state_publisher_;
+    ros::Subscriber robot_state_subscriber_;
+    ros::Publisher marker_robot_state_publisher_;
     interactive_markers::InteractiveMarkerServer interactive_marker_server_;
     IMarker *imarker_robot_;
+    IMarker *imarker_base_;
 
     /* robot info */
     robot_model_loader::RobotModelLoader rm_loader_;
@@ -84,6 +95,7 @@ class InteractiveRobot {
     /* info about joint group we are manipulating */
     robot_state::JointModelGroup* group_;
     Eigen::Affine3d desired_group_end_link_pose_;
+    Eigen::Affine3d desired_base_link_pose_;
 
     /* user callback function */
     boost::function<void (InteractiveRobot& robot)> user_callback_;
@@ -95,6 +107,8 @@ class InteractiveRobot {
     ros::Duration average_callback_duration_;
     static const ros::Duration min_delay_;
     int schedule_request_count_;
+    bool robot_state_initialized_;
+    bool base_changed_;
 };
 
 #endif

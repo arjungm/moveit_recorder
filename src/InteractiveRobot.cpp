@@ -1,28 +1,33 @@
 #include "moveit_recorder/InteractiveRobot.h"
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit/robot_state/conversions.h>
-
+#include <tf/transform_datatypes.h>
 
 // minimum delay between calls to callback function
 const ros::Duration InteractiveRobot::min_delay_(0.01);
 
 InteractiveRobot::InteractiveRobot(
     const std::string& robot_description,
-    const std::string& robot_topic,
+    const std::string& from_scene_topic,
+    const std::string& to_scene_topic,
+    const std::string& display_robot_topic,
     const std::string& marker_topic,
     const std::string& imarker_topic) :
   // this node handle is used to create the publishers
   nh_(),
   // create publishers for markers and robot state
-  robot_state_publisher_(nh_.advertise<moveit_msgs::DisplayRobotState>(robot_topic,1)),
+  robot_state_publisher_(nh_.advertise<moveit_msgs::DisplayRobotState>(display_robot_topic,1)),
   // create an interactive marker server for displaying interactive markers
   interactive_marker_server_(imarker_topic),
   imarker_robot_(0),
+  imarker_base_(0),
   // load the robot description
   rm_loader_(robot_description),
   group_(0),
   user_data_(0),
-  user_callback_(0)
+  user_callback_(0),
+  robot_state_initialized_(false),
+  base_changed_(false)
 {
   // get the RobotModel loaded from urdf and srdf files
   robot_model_ = rm_loader_.getModel();
@@ -30,29 +35,52 @@ InteractiveRobot::InteractiveRobot(
     ROS_ERROR("Could not load robot description");
     throw RobotLoadException();
   }
-
+  ROS_INFO("Interactivity Started");
   // create a RobotState to keep track of the current robot pose
+  marker_robot_state_publisher_ = nh_.advertise<moveit_msgs::RobotState>(to_scene_topic,1);
+  robot_state_subscriber_ = nh_.subscribe(from_scene_topic,1,&InteractiveRobot::updateRobotStateCallback, this);
+  // load from message
+  ros::WallDuration wait_t(1);
+  while( robot_state_subscriber_.getNumPublishers()<1 )
+  {
+    ROS_WARN("[Interactivity] Current state publisher is not loaded, for topic \"%s\"", from_scene_topic.c_str());
+    wait_t.sleep();
+  }
   robot_state_.reset(new robot_state::RobotState(robot_model_));
+  while( !robot_state_initialized_ )
+  {
+    ros::spinOnce();
+    ROS_WARN("[Interactivity] Current scene's robot state is not loaded, spinning...");
+    wait_t.sleep();
+  }
+
   if (!robot_state_) {
     ROS_ERROR("Could not get RobotState from Model");
     throw RobotLoadException();
   }
-  robot_state_->setToDefaultValues();
+  // robot_state_->setToDefaultValues();
 
   // Prepare to move the "right_arm" group
   group_ = robot_model_->getJointModelGroup("right_arm");
   std::string end_link = group_->getLinkModelNames().back();
   desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link);
+  desired_base_link_pose_ = robot_state_->getGlobalLinkTransform("base_link");
   
   // Create a marker to control the "right_arm" group
-  imarker_robot_ = new IMarker(
-      interactive_marker_server_,
-      "robot",
-      desired_group_end_link_pose_,
-      "/base_footprint",
-      boost::bind(movedRobotMarkerCallback,this,_1),
-      IMarker::BOTH);
-
+  imarker_robot_ = new IMarker(interactive_marker_server_,
+                               "robot",
+                               desired_group_end_link_pose_,
+                               "/base_footprint",
+                               boost::bind(movedRobotMarkerCallback,this,_1),
+                               IMarker::BOTH);
+  
+  imarker_base_ = new IMarker(interactive_marker_server_, 
+                              "base", 
+                              desired_base_link_pose_, 
+                              "/base_footprint",
+                              boost::bind(movedRobotBaseMarkerCallback, this, _1), 
+                              IMarker::POS);
+  
 
   // start publishing timer.
   init_time_ = ros::Time::now();
@@ -68,6 +96,16 @@ InteractiveRobot::InteractiveRobot(
 InteractiveRobot::~InteractiveRobot()
 {
   delete imarker_robot_;
+  delete imarker_base_;
+}
+
+void InteractiveRobot::updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg)
+{
+  robot_state_initialized_ = true;
+  bool result = robot_state::robotStateMsgToRobotState(*msg, *robot_state_);
+  if(!result)
+    ROS_WARN("Failed to parse Robot State Message into existing robot state");
+  scheduleUpdate();
 }
 
 // callback called when marker moves.  Moves right hand to new marker pose.
@@ -78,6 +116,16 @@ void InteractiveRobot::movedRobotMarkerCallback(
   Eigen::Affine3d pose;
   tf::poseMsgToEigen(feedback->pose, pose);
   robot->setGroupPose(pose);
+}
+
+void InteractiveRobot::movedRobotBaseMarkerCallback(InteractiveRobot *robot, const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
+{
+  double x, y, theta;
+  x = feedback->pose.position.x;
+  y = feedback->pose.position.y;
+  theta = tf::getYaw(feedback->pose.orientation);
+
+  robot->setBasePose(x,y,theta);
 }
 
 // set the callback timer to fire if needed.
@@ -175,13 +223,19 @@ void InteractiveRobot::updateCallback(const ros::TimerEvent& e)
 void InteractiveRobot::updateAll()
 {
   //TODO get const *
+
   if (robot_state_->setFromIK(robot_state_->getJointModelGroup("right_arm"), 
                               desired_group_end_link_pose_, 10, 0.1))
   {
     publishRobotState();
-
     if (user_callback_)
       user_callback_(*this);
+  }
+  
+  if(base_changed_)
+  {
+    publishRobotState();
+    base_changed_ = false;
   }
 }
 
@@ -217,10 +271,23 @@ bool InteractiveRobot::setGroupPose(const Eigen::Affine3d& pose)
   scheduleUpdate();
 }
 
+bool InteractiveRobot::setBasePose(double x, double y, double theta)
+{
+  robot_state_->setJointPositions("world_joint/x",&x);
+  robot_state_->setJointPositions("world_joint/y",&y);
+  robot_state_->setJointPositions("world_joint/theta",&theta);
+  base_changed_=true;
+  scheduleUpdate();
+}
+
 /* publish robot pose to rviz */
 void InteractiveRobot::publishRobotState()
 {
   moveit_msgs::DisplayRobotState msg;
   robot_state::robotStateToRobotStateMsg(*robot_state_, msg.state);
   robot_state_publisher_.publish(msg);
+  
+  moveit_msgs::RobotState rs_msg;
+  robot_state::robotStateToRobotStateMsg(*robot_state_, rs_msg);
+  marker_robot_state_publisher_.publish(rs_msg);
 }
