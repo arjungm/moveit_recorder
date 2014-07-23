@@ -7,71 +7,102 @@
 class BaseRobotControl
 {
   public:
-    BaseRobotControl(ros::NodeHandle nh, std::string planning_scene_topic) 
+    BaseRobotControl(ros::NodeHandle nh, 
+                     const std::string& planning_scene_topic = "planning_scene",
+                     const std::string& from_marker_topic = "from_marker_state",
+                     const std::string& to_marker_topic = "to_marker_state")
     : m_node_handle(nh), 
       m_scene_initialized(false), 
       m_publish(true),
-      m_planning_scene_topic(planning_scene_topic)
+      m_arm_mode(false),
+      m_planning_scene_topic(planning_scene_topic),
+      m_from_marker_topic(from_marker_topic),
+      m_to_marker_topic(to_marker_topic)
     {
-      m_ps_pub = m_node_handle.advertise<moveit_msgs::PlanningScene>(m_planning_scene_topic,1);
+      // publishers
+      m_planning_scene_publisher = m_node_handle.advertise<moveit_msgs::PlanningScene>(m_planning_scene_topic,1);
+      m_robot_state_publisher =  m_node_handle.advertise<moveit_msgs::RobotState>(m_to_marker_topic, 1);
+      
+      // subscribers
+      m_planning_scene_subscriber = m_node_handle.subscribe(m_planning_scene_topic, 1,
+                                         &BaseRobotControl::planningSceneCallback,
+                                         this);
+      m_robot_state_subscriber = m_node_handle.subscribe(m_from_marker_topic, 1,
+                                         &BaseRobotControl::markerRobotStateCallback,
+                                         this);
     }
     ~BaseRobotControl(){}
-    void updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
+    void onUpdate()
+    {
+      if(m_publish)
+      {
+        m_planning_scene_publisher.publish(m_current_scene); // to rviz
+        m_robot_state_publisher.publish(m_current_state); // to interactive robot
+      }
+    }
+    void planningSceneCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
     {
       if(!m_scene_initialized)
       {
         m_current_scene = *msg;
+        m_current_state = msg->robot_state;
         m_scene_initialized = true;
-        //update yaw
         tf::Quaternion qt;
-        tf::quaternionMsgToTF( m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation, qt);
+        tf::quaternionMsgToTF( m_current_state.multi_dof_joint_state.transforms[0].rotation, qt);
         m_yaw = tf::getYaw(qt);
+        onUpdate();
       }
-      if(m_publish)
-        m_ps_pub.publish(m_current_scene);
     }
-    moveit_msgs::PlanningScene getControlMessage(int dir)
+    void markerRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg)
+    {
+      m_current_state = *msg;
+      m_current_scene.robot_state = *msg;
+      if(m_publish)
+        m_planning_scene_publisher.publish(m_current_scene);
+      // onUpdate();
+    }
+    void getControlMessage(int dir)
     {
       switch(dir)
       {
         case 'w':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x+=0.05;
+          m_current_state.multi_dof_joint_state.transforms[0].translation.x+=0.05;
           ROS_INFO("[Forward] x=%f y=%f",
-                              m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
-                              m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
+                              m_current_state.multi_dof_joint_state.transforms[0].translation.x,
+                              m_current_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'a':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y+=0.05;
+          m_current_state.multi_dof_joint_state.transforms[0].translation.y+=0.05;
           ROS_INFO("[Left] x=%f y=%f",
-                           m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
-                           m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
+                           m_current_state.multi_dof_joint_state.transforms[0].translation.x,
+                           m_current_state.multi_dof_joint_state.transforms[0].translation.y);
          break; 
         case 's':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x-=0.05;
+          m_current_state.multi_dof_joint_state.transforms[0].translation.x-=0.05;
           ROS_INFO("[Backward] x=%f y=%f",
-                               m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
-                               m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
+                               m_current_state.multi_dof_joint_state.transforms[0].translation.x,
+                               m_current_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'd':
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y-=0.05;
+          m_current_state.multi_dof_joint_state.transforms[0].translation.y-=0.05;
           ROS_INFO("[Right] x=%f y=%f",
-                            m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.x,
-                            m_current_scene.robot_state.multi_dof_joint_state.transforms[0].translation.y);
+                            m_current_state.multi_dof_joint_state.transforms[0].translation.x,
+                            m_current_state.multi_dof_joint_state.transforms[0].translation.y);
           break;
         case 'q':
           m_yaw += M_PI/32;
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
+          m_current_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
           ROS_INFO("[Turn] Right by %f", M_PI/32);
           break;
         case 'e':
           m_yaw -= M_PI/32;
-          m_current_scene.robot_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
+          m_current_state.multi_dof_joint_state.transforms[0].rotation = tf::createQuaternionMsgFromYaw(m_yaw);
           ROS_INFO("[Turn] Right by %f", M_PI/32);
           break;
         case 't':
-          for(int i=0; i<m_current_scene.robot_state.joint_state.name.size(); i++)
-            ROS_INFO("[%20s] %f", m_current_scene.robot_state.joint_state.name[i].c_str(),
-                                  m_current_scene.robot_state.joint_state.position[i]);
+          for(int i=0; i<m_current_state.joint_state.name.size(); i++)
+            ROS_INFO("[%20s] %f", m_current_state.joint_state.name[i].c_str(),
+                                  m_current_state.joint_state.position[i]);
           break;
         case 'r':
           ROS_INFO("[Reset] Scene is reset");
@@ -81,33 +112,50 @@ class BaseRobotControl
           ROS_INFO("[Toggle] Publishing is %s", !m_publish?"ON":"OFF");
           m_publish = !m_publish;
           break;
+        case 'm':
+          ROS_INFO("[Toggle] Arm Control Mode is %s", !m_arm_mode?"ON":"OFF");
+          m_arm_mode = !m_arm_mode;
         case 'x':
           ROS_INFO("[Quit] Shutting down");
           ros::shutdown();
         default:
           break;
       }
-      return m_current_scene;
+      m_current_scene.robot_state = m_current_state;
+      onUpdate();
     }
     bool isSceneInitialized() { return m_scene_initialized; }
     void waitForScene()
     {
-      ros::WallDuration sleep_t(0.5);
+      ros::WallDuration sleep_t(1);
       while(!isSceneInitialized())
       {
         ros::spinOnce();
-        ROS_WARN("[Designer] No scene is set, please load a scene from the RVIZ MoveIt plugin or publish it to the topic: \"%s\"", m_planning_scene_topic.c_str());
+        ROS_WARN("[Designer] No scene set, use MoveIt plugin or publish to \"%s\"", m_planning_scene_topic.c_str());
         sleep_t.sleep();
       }
     }
   private:
+
     moveit_msgs::PlanningScene m_current_scene;
-    ros::Publisher m_ps_pub;
+    moveit_msgs::RobotState m_current_state;
+
+    ros::Publisher m_planning_scene_publisher;
+    ros::Publisher m_robot_state_publisher;
+
+    ros::Subscriber m_planning_scene_subscriber;
+    ros::Subscriber m_robot_state_subscriber;
+    
     ros::NodeHandle m_node_handle;
+    
     std::string m_planning_scene_topic;
+    std::string m_from_marker_topic;
+    std::string m_to_marker_topic;
+    
     double m_yaw;
     bool m_scene_initialized;
     bool m_publish;
+    bool m_arm_mode;
 };
 
 int main(int argc, char** argv)
@@ -147,11 +195,19 @@ int main(int argc, char** argv)
 
     // planning scene connection for editing in real time
     // publish diffs to change the robot status
-    std::string planning_scene_topic = vm.count("planning_scene_topic") ? vm["planning_scene_topic"].as<std::string>() : "planning_scene";
+    std::string planning_scene_topic = vm.count("planning_scene_topic") ? 
+                                       vm["planning_scene_topic"].as<std::string>() : 
+                                       "planning_scene";
+
+    std::string from_marker_topic = vm.count("from_marker_topic") ? 
+                                    vm["from_marker_topic"].as<std::string>() : 
+                                    "from_marker_state" ;
+    std::string to_marker_topic = vm.count("to_marker_topic") ? 
+                                  vm["to_marker_topic"].as<std::string>() : 
+                                  "to_marker_state" ;
 
     // initialize the scene and control parser
-    BaseRobotControl brc(node_handle, planning_scene_topic);
-    ros::Subscriber ps_sub = node_handle.subscribe(planning_scene_topic, 1, &BaseRobotControl::updateRobotStateCallback, &brc);
+    BaseRobotControl brc(node_handle, planning_scene_topic, from_marker_topic, to_marker_topic);
     brc.waitForScene();
     
     // spin and catch results
@@ -165,7 +221,7 @@ int main(int argc, char** argv)
       std::cin >> key;
       
       // process the command
-      update_scene = brc.getControlMessage(key);
+      brc.getControlMessage(key);
 
       // if the keypress is a reset, then a new scene needs to be loaded
       brc.waitForScene();
