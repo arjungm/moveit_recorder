@@ -18,6 +18,8 @@
 #include <rosbag/query.h>
 #include <rosbag/view.h>
 
+#include <algorithm>
+
 bool static ready;
 
 void animationResponseCallback(const boost::shared_ptr<std_msgs::Bool const>& msg)
@@ -180,7 +182,12 @@ int main(int argc, char** argv)
             // same filename, counter for viewpoint
             std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
             bag.write(filepath.string(), ros::Time::now(), req.filepath);
-            req.filepath.data = (filepath/ext).string();
+            std::string fixed_path = filepath.string()+ext;
+            std::replace(fixed_path.begin(), fixed_path.end(), '-','_');
+            std::replace(fixed_path.begin(), fixed_path.end(), ' ','_');
+            std::replace(fixed_path.begin(), fixed_path.end(), ':','_');
+
+            req.filepath.data = fixed_path;
            
             animation_pub.publish(req);
             usleep(1000);
