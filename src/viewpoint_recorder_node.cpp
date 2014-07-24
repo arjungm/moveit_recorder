@@ -47,7 +47,7 @@ int main(int argc, char** argv)
       sleep_t.sleep();
     }
 
-    rosbag::Bag bag("/tmp/test.bag", rosbag::bagmode::Write);
+    rosbag::Bag bag(save_dir, rosbag::bagmode::Write);
     bag.close();
 
     while(ros::ok())
