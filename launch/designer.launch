@@ -58,7 +58,7 @@
   <arg name="host" default="127.0.0.1" />
   <arg name="port" default="33829" />
   <arg name="planning_scene_topic" default="planning_scene" />
-  <arg name="save_dir" default="/tmp/" />
+  <arg name="save_dir" default="$(find moveit_recorder)/test/" />
   <node name="designer" pkg="moveit_recorder" type="benchmark_designer_node" respawn="false" output="screen"
         args="--host $(arg host) 
               --port $(arg port) 
