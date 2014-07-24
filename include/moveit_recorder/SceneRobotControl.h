@@ -6,6 +6,21 @@
 #include <vector>
 #include <moveit_msgs/PlanningScene.h>
 #include <moveit_msgs/RobotState.h>
+#include <tf/transform_datatypes.h>
+#include <tf/tf.h>
+
+inline void getRPY(const geometry_msgs::Pose& pose, double& roll, double& pitch, double& yaw)
+{
+  tf::Quaternion orientation;
+  tf::quaternionMsgToTF(pose.orientation, orientation);
+  tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
+}
+inline void getRPY(const geometry_msgs::Transform& transform, double& roll, double& pitch, double& yaw)
+{
+  tf::Quaternion orientation;
+  tf::quaternionMsgToTF(transform.rotation, orientation);
+  tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
+}
 
 class SceneRobotControl
 {

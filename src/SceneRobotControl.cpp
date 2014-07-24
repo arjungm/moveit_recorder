@@ -1,24 +1,7 @@
 #include "moveit_recorder/SceneRobotControl.h"
 #include <boost/filesystem.hpp>
-#include <tf/transform_datatypes.h>
-#include <tf/tf.h>
 #include <iostream>
 #include <fstream>
-
-
-inline void getRPY(const geometry_msgs::Pose& pose, double& roll, double& pitch, double& yaw)
-{
-  tf::Quaternion orientation;
-  tf::quaternionMsgToTF(pose.orientation, orientation);
-  tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
-}
-
-inline void getRPY(const geometry_msgs::Transform& transform, double& roll, double& pitch, double& yaw)
-{
-  tf::Quaternion orientation;
-  tf::quaternionMsgToTF(transform.rotation, orientation);
-  tf::Matrix3x3(orientation).getRPY(roll, pitch, yaw);
-}
 
 SceneRobotControl::SceneRobotControl(ros::NodeHandle nh, 
     const std::string& planning_scene_topic,
