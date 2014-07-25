@@ -23,7 +23,8 @@ class IMarker
         const std::string& frame_id = "/base_footprint",
         boost::function<void (const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)> callback = printFeedback,
         Dof dof = BOTH) :
-      imarker_()
+      imarker_(),
+      dof_(dof)
   {
     initialize(server, name, Eigen::Vector3d(0,0,0), Eigen::Quaterniond(1,0,0,0), frame_id, callback, dof);
   }
@@ -35,7 +36,8 @@ class IMarker
         const std::string& frame_id = "/base_footprint",
         boost::function<void (const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)> callback = printFeedback,
         Dof dof = BOTH) :
-      imarker_()
+      imarker_(),
+      dof_(dof)
   {
     Eigen::Quaterniond q(pose.linear());
     Eigen::Vector3d p = pose.translation();
@@ -51,7 +53,8 @@ class IMarker
         const std::string& frame_id = "/base_footprint",
         boost::function<void (const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)> callback = printFeedback,
         Dof dof = BOTH) :
-      imarker_()
+      imarker_(),
+      dof_(dof)
   {
     initialize(server, name, position, orientation, frame_id, callback, dof);
   }
@@ -63,7 +66,8 @@ class IMarker
         const std::string& frame_id = "/base_footprint",
         boost::function<void (const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)> callback = printFeedback,
         Dof dof = BOTH) :
-      imarker_()
+      imarker_(),
+      dof_(dof)
   {
     initialize(server, name, position, Eigen::Quaterniond(1,0,0,0), frame_id, callback, dof);
   }
@@ -92,7 +96,9 @@ class IMarker
     void makeBallControl();
     void makeAxisControl();
     void makePlanarControl();
+    void setControls(Dof dof);
 
     visualization_msgs::InteractiveMarker imarker_;
     interactive_markers::InteractiveMarkerServer* server_;
+    Dof dof_;
 };
