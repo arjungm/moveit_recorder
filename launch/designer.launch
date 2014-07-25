@@ -66,6 +66,6 @@
               --from_marker_pose_topic $(arg from_marker_pose_topic) 
               --to_marker_topic $(arg to_marker_topic) 
               --save_dir $(arg save_dir) 
-              --planning_scene_topic $(arg planning_scene_topic)">
+              --planning_scene_topic $(arg planning_scene_topic)" launch-prefix="gdb -ex run --args">
   </node>
 </launch>
