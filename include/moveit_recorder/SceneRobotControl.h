@@ -9,6 +9,11 @@
 #include <tf/transform_datatypes.h>
 #include <tf/tf.h>
 
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_state/robot_state.h>
+#include <moveit/planning_scene/planning_scene.h>
+
 inline void getRPY(const geometry_msgs::Pose& pose, double& roll, double& pitch, double& yaw)
 {
   tf::Quaternion orientation;
@@ -50,6 +55,10 @@ class SceneRobotControl
                           const std::vector<geometry_msgs::Pose>& poses);
     
   private:
+    robot_model_loader::RobotModelLoaderPtr m_robot_model_loader;
+    robot_model::RobotModelPtr m_robot_model;
+    robot_state::RobotStatePtr m_robot_state;
+    planning_scene::PlanningScenePtr m_planning_scene;
 
     moveit_msgs::PlanningScene m_current_scene;
     moveit_msgs::RobotState m_current_state;
