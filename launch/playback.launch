@@ -47,8 +47,13 @@
 
   <arg name="views" default="$(find moveit_recorder)/test/view.bag" />
 
+  <arg name="save_dir" default="$(find moveit_recorder)/videos/" />
+
   <node name="playback" pkg="moveit_recorder" type="playback_node" 
-    args="--host $(arg host) --port $(arg port) --views $(arg views)" respawn="false" output="screen">
+    args="--host $(arg host) 
+          --port $(arg port) 
+          --views $(arg views) 
+          --save_dir $(arg save_dir)" respawn="false" output="screen">
   </node>
 
 </launch>
