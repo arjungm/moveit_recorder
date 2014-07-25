@@ -5,6 +5,7 @@
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
+#include <moveit/planning_scene/planning_scene.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include "moveit_recorder/InteractiveRobotMarker.h"
@@ -17,6 +18,7 @@ class InteractiveRobot {
   public:
     InteractiveRobot(
         const std::string& robot_description = "robot_description",
+        const std::string& planning_scene_topic = "planning_scene",
         const std::string& from_scene_topic = "to_marker_state",
         const std::string& to_scene_topic = "from_marker_state",
         const std::string& to_scene_pose_topic = "from_marker_pose",
@@ -83,11 +85,13 @@ class InteractiveRobot {
         const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback );
     
     void updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg);
+    void updatePlanningSceneCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg);
 
     /* marker publishers */
     ros::NodeHandle nh_;
-    ros::Publisher robot_state_publisher_;
     ros::Subscriber robot_state_subscriber_;
+    ros::Subscriber planning_scene_subscriber_;
+    ros::Publisher robot_state_publisher_;
     ros::Publisher marker_robot_state_publisher_;
     ros::Publisher marker_robot_pose_publisher_;
     interactive_markers::InteractiveMarkerServer interactive_marker_server_;
@@ -99,6 +103,7 @@ class InteractiveRobot {
     robot_model_loader::RobotModelLoader rm_loader_;
     robot_model::RobotModelPtr robot_model_;
     robot_state::RobotStatePtr robot_state_;
+    planning_scene::PlanningScenePtr planning_scene_;
 
     /* info about joint group we are manipulating */
     robot_state::JointModelGroup* group_;
@@ -123,6 +128,7 @@ class InteractiveRobot {
     static const ros::Duration min_delay_;
     int schedule_request_count_;
     bool robot_state_initialized_;
+    bool planning_scene_initialized_;
     bool base_changed_;
 };
 

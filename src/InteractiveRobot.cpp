@@ -2,12 +2,14 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit/robot_state/conversions.h>
 #include <tf/transform_datatypes.h>
+#include <moveit/collision_detection/collision_common.h>
 
 // minimum delay between calls to callback function
 const ros::Duration InteractiveRobot::min_delay_(0.01);
 
 InteractiveRobot::InteractiveRobot(
     const std::string& robot_description,
+    const std::string& planning_scene_topic,
     const std::string& from_scene_topic,
     const std::string& to_scene_topic,
     const std::string& to_scene_pose_topic,
@@ -30,8 +32,10 @@ InteractiveRobot::InteractiveRobot(
   user_data_(0),
   user_callback_(0),
   robot_state_initialized_(false),
+  planning_scene_initialized_(false),
   base_changed_(false),
-  arm_name_(arm_name)
+  arm_name_(arm_name),
+  other_arm_name_(arm_name_.at(0)=='r'?"left_arm":"right_arm")
 {
   // get the RobotModel loaded from urdf and srdf files
   robot_model_ = rm_loader_.getModel();
@@ -39,11 +43,13 @@ InteractiveRobot::InteractiveRobot(
     ROS_ERROR("Could not load robot description");
     throw RobotLoadException();
   }
+  planning_scene_ = boost::make_shared<planning_scene::PlanningScene>(robot_model_);
   ROS_INFO("Interactivity Started");
   // create a RobotState to keep track of the current robot pose
   marker_robot_state_publisher_ = nh_.advertise<moveit_msgs::RobotState>(to_scene_topic,1);
   marker_robot_pose_publisher_ = nh_.advertise<geometry_msgs::Pose>(to_scene_pose_topic,1);
   robot_state_subscriber_ = nh_.subscribe(from_scene_topic,1,&InteractiveRobot::updateRobotStateCallback, this);
+  planning_scene_subscriber_ = nh_.subscribe(planning_scene_topic,1,&InteractiveRobot::updatePlanningSceneCallback, this);
   // load from message
   ros::WallDuration wait_t(1);
   while( robot_state_subscriber_.getNumPublishers()<1 )
@@ -65,10 +71,7 @@ InteractiveRobot::InteractiveRobot(
   }
   base_joint_ = robot_state_->getJointModel("world_joint");
   
-  if( arm_name_.at(0) == 'r' )
-    other_arm_name_ = "left_arm";
-  else
-    other_arm_name_ = "right_arm";
+  ROS_INFO("Loading groups in for \"%s\" and \"%s\"", arm_name_.c_str(), other_arm_name_.c_str());
 
   // Prepare to move the "right_arm" group
   group_ = robot_model_->getJointModelGroup(arm_name_);
@@ -125,6 +128,13 @@ void InteractiveRobot::updateRobotStateCallback(const boost::shared_ptr<moveit_m
   bool result = robot_state::robotStateMsgToRobotState(*msg, *robot_state_);
   if(!result)
     ROS_WARN("Failed to parse Robot State Message into existing robot state");
+  scheduleUpdate();
+}
+
+void InteractiveRobot::updatePlanningSceneCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
+{
+  planning_scene_initialized_ = true;
+  planning_scene_->usePlanningSceneMsg(*msg);
   scheduleUpdate();
 }
 
@@ -254,19 +264,36 @@ void InteractiveRobot::updateAll()
 {
   //TODO get const *
 
-  if (robot_state_->setFromIK(robot_state_->getJointModelGroup(arm_name_), 
-                              desired_group_end_link_pose_, 10, 0.1))
+  if (robot_state_->setFromIK(robot_state_->getJointModelGroup(arm_name_), desired_group_end_link_pose_, 10, 0.1))
     publishRobotState();
-
-  if(robot_state_->setFromIK(robot_state_->getJointModelGroup(other_arm_name_), 
-                              other_desired_group_end_link_pose_, 10, 0.1))
+  if(robot_state_->setFromIK(robot_state_->getJointModelGroup(other_arm_name_), other_desired_group_end_link_pose_, 10, 0.1))
     publishRobotState();
-  
   if(base_changed_)
   {
     publishRobotState();
     base_changed_ = false;
   }
+
+  if(planning_scene_initialized_ && robot_state_initialized_)
+  {
+    // check for collisions
+    collision_detection::CollisionRequest req; req.contacts=true;
+    collision_detection::CollisionResult res;
+    collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
+    planning_scene_->checkCollision(req, res, *robot_state_, acm);
+    if(res.collision)
+    {
+      collision_detection::CollisionResult::ContactMap::iterator collision_pair = res.contacts.begin();
+      for(; collision_pair!=res.contacts.end(); ++collision_pair)
+        ROS_WARN("Collision detected between %s and %s", 
+                          collision_pair->first.first.c_str(), 
+                          collision_pair->first.second.c_str());
+    }
+    else
+      ROS_INFO("Collision free");
+  }
+  else
+    ROS_WARN("Scene and Robot State not initialized");
 }
 
 // change which group is being manipulated
