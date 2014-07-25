@@ -2,7 +2,6 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit/robot_state/conversions.h>
 #include <tf/transform_datatypes.h>
-#include <moveit/collision_detection/collision_common.h>
 
 // minimum delay between calls to callback function
 const ros::Duration InteractiveRobot::min_delay_(0.01);
@@ -22,7 +21,6 @@ InteractiveRobot::InteractiveRobot(
   // create publishers for markers and robot state
   robot_state_publisher_(nh_.advertise<moveit_msgs::DisplayRobotState>(display_robot_topic,1)),
   // create an interactive marker server for displaying interactive markers
-  interactive_marker_server_(imarker_topic),
   imarker_robot_(0),
   imarker_base_(0),
   imarker_other_(0),
@@ -32,24 +30,22 @@ InteractiveRobot::InteractiveRobot(
   user_data_(0),
   user_callback_(0),
   robot_state_initialized_(false),
-  planning_scene_initialized_(false),
   base_changed_(false),
   arm_name_(arm_name),
   other_arm_name_(arm_name_.at(0)=='r'?"left_arm":"right_arm")
 {
+  interactive_marker_server_.reset(new interactive_markers::InteractiveMarkerServer(imarker_topic)),
   // get the RobotModel loaded from urdf and srdf files
   robot_model_ = rm_loader_.getModel();
   if (!robot_model_) {
     ROS_ERROR("Could not load robot description");
     throw RobotLoadException();
   }
-  planning_scene_ = boost::make_shared<planning_scene::PlanningScene>(robot_model_);
   ROS_INFO("Interactivity Started");
   // create a RobotState to keep track of the current robot pose
   marker_robot_state_publisher_ = nh_.advertise<moveit_msgs::RobotState>(to_scene_topic,1);
   marker_robot_pose_publisher_ = nh_.advertise<geometry_msgs::Pose>(to_scene_pose_topic,1);
   robot_state_subscriber_ = nh_.subscribe(from_scene_topic,1,&InteractiveRobot::updateRobotStateCallback, this);
-  planning_scene_subscriber_ = nh_.subscribe(planning_scene_topic,1,&InteractiveRobot::updatePlanningSceneCallback, this);
   // load from message
   ros::WallDuration wait_t(1);
   while( robot_state_subscriber_.getNumPublishers()<1 )
@@ -85,19 +81,19 @@ InteractiveRobot::InteractiveRobot(
   other_desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(other_end_link_);
   
   // Create a marker to control the "right_arm" group
-  imarker_robot_ = new IMarker(interactive_marker_server_,
+  imarker_robot_ = new IMarker(*interactive_marker_server_,
                                arm_name_,
                                desired_group_end_link_pose_,
                                "/base_footprint",
                                boost::bind(movedRobotMarkerCallback,this,_1),
                                IMarker::BOTH);
-  imarker_other_ = new IMarker(interactive_marker_server_,
+  imarker_other_ = new IMarker(*interactive_marker_server_,
                                other_arm_name_,
                                other_desired_group_end_link_pose_,
                                "/base_footprint",
                                boost::bind(movedOtherMarkerCallback,this,_1),
                                IMarker::BOTH);
-  imarker_base_ = new IMarker(interactive_marker_server_, 
+  imarker_base_ = new IMarker(*interactive_marker_server_, 
                               "base", 
                               desired_base_link_pose_, 
                               "/base_footprint",
@@ -119,7 +115,35 @@ InteractiveRobot::InteractiveRobot(
 InteractiveRobot::~InteractiveRobot()
 {
   delete imarker_robot_;
+  delete imarker_other_;
   delete imarker_base_;
+  interactive_marker_server_.reset();
+}
+
+void InteractiveRobot::resetMarkers()
+{
+  delete imarker_robot_;
+  delete imarker_other_;
+  delete imarker_base_;
+  
+  imarker_robot_ = new IMarker(*interactive_marker_server_,
+                               arm_name_,
+                               desired_group_end_link_pose_,
+                               "/base_footprint",
+                               boost::bind(movedRobotMarkerCallback,this,_1),
+                               IMarker::BOTH);
+  imarker_other_ = new IMarker(*interactive_marker_server_,
+                               other_arm_name_,
+                               other_desired_group_end_link_pose_,
+                               "/base_footprint",
+                               boost::bind(movedOtherMarkerCallback,this,_1),
+                               IMarker::BOTH);
+  imarker_base_ = new IMarker(*interactive_marker_server_, 
+                              "base", 
+                              desired_base_link_pose_, 
+                              "/base_footprint",
+                              boost::bind(movedRobotBaseMarkerCallback, this, _1), 
+                              IMarker::PLANAR);
 }
 
 void InteractiveRobot::updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg)
@@ -128,13 +152,6 @@ void InteractiveRobot::updateRobotStateCallback(const boost::shared_ptr<moveit_m
   bool result = robot_state::robotStateMsgToRobotState(*msg, *robot_state_);
   if(!result)
     ROS_WARN("Failed to parse Robot State Message into existing robot state");
-  scheduleUpdate();
-}
-
-void InteractiveRobot::updatePlanningSceneCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
-{
-  planning_scene_initialized_ = true;
-  planning_scene_->usePlanningSceneMsg(*msg);
   scheduleUpdate();
 }
 
@@ -273,27 +290,6 @@ void InteractiveRobot::updateAll()
     publishRobotState();
     base_changed_ = false;
   }
-
-  if(planning_scene_initialized_ && robot_state_initialized_)
-  {
-    // check for collisions
-    collision_detection::CollisionRequest req; req.contacts=true;
-    collision_detection::CollisionResult res;
-    collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
-    planning_scene_->checkCollision(req, res, *robot_state_, acm);
-    if(res.collision)
-    {
-      collision_detection::CollisionResult::ContactMap::iterator collision_pair = res.contacts.begin();
-      for(; collision_pair!=res.contacts.end(); ++collision_pair)
-        ROS_WARN("Collision detected between %s and %s", 
-                          collision_pair->first.first.c_str(), 
-                          collision_pair->first.second.c_str());
-    }
-    else
-      ROS_INFO("Collision free");
-  }
-  else
-    ROS_WARN("Scene and Robot State not initialized");
 }
 
 // change which group is being manipulated
@@ -325,12 +321,14 @@ const std::string& InteractiveRobot::getGroupName() const
 bool InteractiveRobot::setGroupPose(const Eigen::Affine3d& pose)
 {
   desired_group_end_link_pose_ = pose;
+  pose_of_ee_in_base_ = desired_base_link_pose_.inverse() * pose;
   scheduleUpdate();
 }
 
 bool InteractiveRobot::setOtherGroupPose(const Eigen::Affine3d& pose)
 {
   other_desired_group_end_link_pose_ = pose;
+  other_pose_of_ee_in_base_  = desired_base_link_pose_.inverse() * pose;
   scheduleUpdate();
 }
 
@@ -341,6 +339,17 @@ bool InteractiveRobot::setBasePose(double x, double y, double theta)
   positions.push_back(y);
   positions.push_back(theta);
   robot_state_->setJointPositions(base_joint_, positions);
+
+  desired_base_link_pose_ = robot_state_->getGlobalLinkTransform("base_link");
+  
+  desired_group_end_link_pose_ = pose_of_ee_in_base_ * desired_base_link_pose_;
+  other_desired_group_end_link_pose_ = other_pose_of_ee_in_base_ * desired_base_link_pose_;
+
+  // resetMarkers();
+
+  imarker_robot_->move(desired_group_end_link_pose_);
+  imarker_other_->move(other_desired_group_end_link_pose_);
+
   base_changed_=true;
   scheduleUpdate();
 }
