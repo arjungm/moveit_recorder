@@ -80,32 +80,10 @@ void IMarker::makePlanarControl()
   imarker_.controls.push_back( control );
 }
 
-/* move to new pose */
-void IMarker::move(const Eigen::Affine3d& pose)
+void IMarker::setControls(IMarker::Dof dof)
 {
-  tf::poseEigenToMsg(pose, imarker_.pose);
-  server_->applyChanges();
-}
-
-/* initialize the marker.  All constructors call this. */
-void IMarker::initialize(
-    interactive_markers::InteractiveMarkerServer& server,
-    const std::string& name,
-    const Eigen::Vector3d& position,
-    const Eigen::Quaterniond& orientation,
-    const std::string& frame_id,
-    boost::function<void (const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)> callback,
-    IMarker::Dof dof)
-{
-  server_ = &server;
-  imarker_.header.frame_id = frame_id;
-  tf::pointEigenToMsg(position, imarker_.pose.position);
-  tf::quaternionEigenToMsg(orientation, imarker_.pose.orientation);
-  imarker_.scale = 0.3;
-
-  imarker_.name = name;
-  imarker_.description = name;
-
+  imarker_.controls.clear();
+  
   // insert a control with a marker
   switch (dof)
   {
@@ -123,7 +101,6 @@ void IMarker::initialize(
   }
 
   visualization_msgs::InteractiveMarkerControl control;
-
   control.orientation_mode = visualization_msgs::InteractiveMarkerControl::FIXED;
 
   // add orientation and/or position controls
@@ -168,6 +145,39 @@ void IMarker::initialize(
       imarker_.controls.push_back(control);
     }
   }
+}
+
+/* move to new pose */
+void IMarker::move(const Eigen::Affine3d& pose)
+{
+  Eigen::Quaterniond q(pose.linear());
+  Eigen::Vector3d p = pose.translation();
+  tf::pointEigenToMsg(p, imarker_.pose.position);
+  tf::quaternionEigenToMsg(q, imarker_.pose.orientation);
+  setControls(dof_);
+  server_->applyChanges();
+}
+
+/* initialize the marker.  All constructors call this. */
+void IMarker::initialize(
+    interactive_markers::InteractiveMarkerServer& server,
+    const std::string& name,
+    const Eigen::Vector3d& position,
+    const Eigen::Quaterniond& orientation,
+    const std::string& frame_id,
+    boost::function<void (const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)> callback,
+    IMarker::Dof dof)
+{
+  server_ = &server;
+  imarker_.header.frame_id = frame_id;
+  tf::pointEigenToMsg(position, imarker_.pose.position);
+  tf::quaternionEigenToMsg(orientation, imarker_.pose.orientation);
+  imarker_.scale = 0.3;
+
+  imarker_.name = name;
+  imarker_.description = name;
+
+  setControls(dof);
 
   // tell the server to show the marker and listen for changes
   server_->insert(imarker_);
