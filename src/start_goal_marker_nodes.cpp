@@ -13,6 +13,8 @@ int main(int argc, char** argv)
   ros::NodeHandle node_handle;
   ros::AsyncSpinner spinner(1);
   spinner.start();
+
+  sleep(20);
   
   boost::program_options::options_description desc;
   desc.add_options()
@@ -51,7 +53,8 @@ int main(int argc, char** argv)
                             from_marker_pose_topic,
                             display_robot_topic,
                             robot_marker_topic,
-                            interactive_marker_topic);
+                            interactive_marker_topic,
+                            "right_arm");
     ros::spin();
   }
   catch(...)
