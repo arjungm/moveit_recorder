@@ -20,6 +20,7 @@ int main(int argc, char** argv)
   desc.add_options()
     ("help", "Show help message")
     ("robot_description", boost::program_options::value<std::string>(), "robot description param name")
+    ("planning_scene_topic", boost::program_options::value<std::string>(), "planning scene topic")
     ("to_marker_topic", boost::program_options::value<std::string>(), "robot state topic FROM planning scene")
     ("from_marker_topic", boost::program_options::value<std::string>(), "robot state topic TO planning scene")
     ("from_marker_pose_topic", boost::program_options::value<std::string>(), "pose topic for robot end link pose")
@@ -40,6 +41,7 @@ int main(int argc, char** argv)
   try
   {
     std::string robot_description = get_option(vm, "robot_description", "robot_description");
+    std::string planning_scene_topic = get_option(vm, "planning_scene_topic", "planning_scene");
     std::string to_marker_topic = get_option(vm, "to_marker_topic", "to_marker_state");
     std::string from_marker_topic = get_option(vm, "from_marker_topic", "from_marker_state");
     std::string from_marker_pose_topic = get_option(vm, "from_marker_pose_topic", "from_marker_pose");
@@ -48,6 +50,7 @@ int main(int argc, char** argv)
     std::string interactive_marker_topic = get_option(vm, "interactive_marker_topic", "interactive_robot_imarkers");
 
     InteractiveRobot robot( robot_description,
+                            planning_scene_topic,
                             to_marker_topic,
                             from_marker_topic,
                             from_marker_pose_topic,
