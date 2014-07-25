@@ -1,3 +1,5 @@
+#include <moveit/robot_state/conversions.h>
+#include <moveit/collision_detection/collision_common.h>
 #include "moveit_recorder/SceneRobotControl.h"
 #include <boost/filesystem.hpp>
 #include <iostream>
@@ -29,9 +31,20 @@ SceneRobotControl::SceneRobotControl(ros::NodeHandle nh,
       &SceneRobotControl::markerRobotStateCallback, this);
   m_robot_pose_subscriber = m_node_handle.subscribe(m_from_marker_pose_topic, 1,
       &SceneRobotControl::markerRobotPoseCallback, this);
+
+  // collision checking
+  m_robot_model_loader.reset(new robot_model_loader::RobotModelLoader("robot_description")); // TODO is param?
+  m_robot_model = m_robot_model_loader->getModel();
+  m_robot_state.reset(new robot_state::RobotState(m_robot_model));
+  m_planning_scene = boost::make_shared<planning_scene::PlanningScene>(m_robot_model);
 }
 
-SceneRobotControl::~SceneRobotControl(){}
+SceneRobotControl::~SceneRobotControl()
+{
+  m_planning_scene.reset();
+  m_robot_state.reset();
+  m_robot_model.reset();
+}
 
 void SceneRobotControl::markerRobotPoseCallback(const boost::shared_ptr<geometry_msgs::Pose const>& msg)
 {
@@ -42,6 +55,7 @@ void SceneRobotControl::planningSceneCallback(const boost::shared_ptr<moveit_msg
 {
   if(!m_scene_initialized)
   {
+    m_planning_scene->usePlanningSceneMsg(*msg);
     m_current_scene = *msg;
     m_current_state = msg->robot_state;
     m_scene_initialized = true;
@@ -55,6 +69,7 @@ void SceneRobotControl::markerRobotStateCallback(const boost::shared_ptr<moveit_
 {
   m_current_state = *msg;
   m_current_scene.robot_state = *msg;
+  robot_state::robotStateMsgToRobotState(*msg, *m_robot_state);
   m_planning_scene_publisher.publish(m_current_scene); // to rviz & move group
 }
 
@@ -162,6 +177,24 @@ void SceneRobotControl::getControlMessage(int dir)
 
       m_query_6dofposes.push_back(m_current_pose);
 
+      break;
+    }
+    case 'c':
+    {
+      ROS_INFO("[Collision] Checking for collisions on the whole robot");
+      collision_detection::CollisionRequest req; req.contacts=true;
+      collision_detection::CollisionResult res;
+      m_planning_scene->checkCollision(req, res, *m_robot_state, m_planning_scene->getAllowedCollisionMatrix());
+      if(res.collision)
+      {
+        collision_detection::CollisionResult::ContactMap::iterator collision_pair = res.contacts.begin();
+        for(; collision_pair!=res.contacts.end(); ++collision_pair)
+          ROS_WARN("Collision detected between %s and %s", 
+              collision_pair->first.first.c_str(), 
+              collision_pair->first.second.c_str());
+      }
+      else
+        ROS_INFO("Collision free");
       break;
     }
     case 'w':
