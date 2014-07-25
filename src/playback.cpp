@@ -41,7 +41,7 @@ int main(int argc, char** argv)
     ("help", "Show help message")
     ("host", boost::program_options::value<std::string>(), "Host for the MongoDB.")
     ("port", boost::program_options::value<std::size_t>(), "Port for the MongoDB.")
-    ("views",boost::program_options::value<std::string>(), "Bag file for viewpoints");
+    ("views",boost::program_options::value<std::string>(), "Bag file for viewpoints")
     ("save_dir",boost::program_options::value<std::string>(), "Directory for saving videos");
 
   boost::program_options::variables_map vm;
@@ -153,7 +153,15 @@ int main(int argc, char** argv)
             
           //date and time based filename
           boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-          boost::filesystem::path filename(boost::posix_time::to_simple_string(now) );
+          std::string vid_filename = boost::posix_time::to_simple_string(now);
+
+          // fix filename
+          std::replace(vid_filename.begin(), vid_filename.end(), '-','_');
+          std::replace(vid_filename.begin(), vid_filename.end(), ' ','_');
+          std::replace(vid_filename.begin(), vid_filename.end(), ':','_');
+
+
+          boost::filesystem::path filename( vid_filename );
           boost::filesystem::path filepath = storage_dir / filename;
 
           // save into lookup
@@ -182,12 +190,9 @@ int main(int argc, char** argv)
             // same filename, counter for viewpoint
             std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
             bag.write(filepath.string(), ros::Time::now(), req.filepath);
-            std::string fixed_path = filepath.string()+ext;
-            std::replace(fixed_path.begin(), fixed_path.end(), '-','_');
-            std::replace(fixed_path.begin(), fixed_path.end(), ' ','_');
-            std::replace(fixed_path.begin(), fixed_path.end(), ':','_');
+            std::string video_file = filepath.string()+ext;
 
-            req.filepath.data = fixed_path;
+            req.filepath.data = video_file;
            
             animation_pub.publish(req);
             usleep(1000);
