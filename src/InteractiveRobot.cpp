@@ -13,7 +13,8 @@ InteractiveRobot::InteractiveRobot(
     const std::string& to_scene_pose_topic,
     const std::string& display_robot_topic,
     const std::string& marker_topic,
-    const std::string& imarker_topic) :
+    const std::string& imarker_topic,
+    const std::string& arm_name) :
   // this node handle is used to create the publishers
   nh_(),
   // create publishers for markers and robot state
@@ -22,13 +23,15 @@ InteractiveRobot::InteractiveRobot(
   interactive_marker_server_(imarker_topic),
   imarker_robot_(0),
   imarker_base_(0),
+  imarker_other_(0),
   // load the robot description
   rm_loader_(robot_description),
   group_(0),
   user_data_(0),
   user_callback_(0),
   robot_state_initialized_(false),
-  base_changed_(false)
+  base_changed_(false),
+  arm_name_(arm_name)
 {
   // get the RobotModel loaded from urdf and srdf files
   robot_model_ = rm_loader_.getModel();
@@ -61,21 +64,36 @@ InteractiveRobot::InteractiveRobot(
     throw RobotLoadException();
   }
   base_joint_ = robot_state_->getJointModel("world_joint");
+  
+  if( arm_name_.at(0) == 'r' )
+    other_arm_name_ = "left_arm";
+  else
+    other_arm_name_ = "right_arm";
 
   // Prepare to move the "right_arm" group
-  group_ = robot_model_->getJointModelGroup("right_arm");
+  group_ = robot_model_->getJointModelGroup(arm_name_);
   end_link_ = group_->getLinkModelNames().back();
   desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(end_link_);
   desired_base_link_pose_ = robot_state_->getGlobalLinkTransform("base_link");
+
+  // Other
+  other_group_ = robot_model_->getJointModelGroup(other_arm_name_);
+  other_end_link_ = other_group_->getLinkModelNames().back();
+  other_desired_group_end_link_pose_ = robot_state_->getGlobalLinkTransform(other_end_link_);
   
   // Create a marker to control the "right_arm" group
   imarker_robot_ = new IMarker(interactive_marker_server_,
-                               "robot",
+                               arm_name_,
                                desired_group_end_link_pose_,
                                "/base_footprint",
                                boost::bind(movedRobotMarkerCallback,this,_1),
                                IMarker::BOTH);
-  
+  imarker_other_ = new IMarker(interactive_marker_server_,
+                               other_arm_name_,
+                               other_desired_group_end_link_pose_,
+                               "/base_footprint",
+                               boost::bind(movedOtherMarkerCallback,this,_1),
+                               IMarker::BOTH);
   imarker_base_ = new IMarker(interactive_marker_server_, 
                               "base", 
                               desired_base_link_pose_, 
@@ -118,6 +136,16 @@ void InteractiveRobot::movedRobotMarkerCallback(
   Eigen::Affine3d pose;
   tf::poseMsgToEigen(feedback->pose, pose);
   robot->setGroupPose(pose);
+}
+
+// callback called when marker moves.  Moves right hand to new marker pose.
+void InteractiveRobot::movedOtherMarkerCallback(
+    InteractiveRobot *robot,
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
+{
+  Eigen::Affine3d pose;
+  tf::poseMsgToEigen(feedback->pose, pose);
+  robot->setOtherGroupPose(pose);
 }
 
 void InteractiveRobot::movedRobotBaseMarkerCallback(InteractiveRobot *robot, const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
@@ -226,13 +254,13 @@ void InteractiveRobot::updateAll()
 {
   //TODO get const *
 
-  if (robot_state_->setFromIK(robot_state_->getJointModelGroup("right_arm"), 
+  if (robot_state_->setFromIK(robot_state_->getJointModelGroup(arm_name_), 
                               desired_group_end_link_pose_, 10, 0.1))
-  {
     publishRobotState();
-    if (user_callback_)
-      user_callback_(*this);
-  }
+
+  if(robot_state_->setFromIK(robot_state_->getJointModelGroup(other_arm_name_), 
+                              other_desired_group_end_link_pose_, 10, 0.1))
+    publishRobotState();
   
   if(base_changed_)
   {
@@ -270,6 +298,12 @@ const std::string& InteractiveRobot::getGroupName() const
 bool InteractiveRobot::setGroupPose(const Eigen::Affine3d& pose)
 {
   desired_group_end_link_pose_ = pose;
+  scheduleUpdate();
+}
+
+bool InteractiveRobot::setOtherGroupPose(const Eigen::Affine3d& pose)
+{
+  other_desired_group_end_link_pose_ = pose;
   scheduleUpdate();
 }
 

@@ -22,7 +22,8 @@ class InteractiveRobot {
         const std::string& to_scene_pose_topic = "from_marker_pose",
         const std::string& display_robot_topic = "interactive_robot_state",
         const std::string& marker_topic = "interactive_robot_markers",
-        const std::string& imarker_topic = "interactive_robot_imarkers");
+        const std::string& imarker_topic = "interactive_robot_imarkers",
+        const std::string& arm_name = "right_arm");
     ~InteractiveRobot();
 
     /** set which group to manipulate */
@@ -31,6 +32,7 @@ class InteractiveRobot {
 
     /** Set the pose of the group we are manipulating */
     bool setGroupPose(const Eigen::Affine3d& pose);
+    bool setOtherGroupPose(const Eigen::Affine3d& pose);
     bool setBasePose(double x, double y, double theta);
 
     /** set a callback to call when updates occur */
@@ -73,6 +75,9 @@ class InteractiveRobot {
     static void movedRobotMarkerCallback(
         InteractiveRobot *robot,
         const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback );
+    static void movedOtherMarkerCallback(
+        InteractiveRobot *robot,
+        const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback );
     static void movedRobotBaseMarkerCallback(
         InteractiveRobot *robot,
         const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback );
@@ -87,6 +92,7 @@ class InteractiveRobot {
     ros::Publisher marker_robot_pose_publisher_;
     interactive_markers::InteractiveMarkerServer interactive_marker_server_;
     IMarker *imarker_robot_;
+    IMarker *imarker_other_;
     IMarker *imarker_base_;
 
     /* robot info */
@@ -96,10 +102,15 @@ class InteractiveRobot {
 
     /* info about joint group we are manipulating */
     robot_state::JointModelGroup* group_;
+    robot_state::JointModelGroup* other_group_;
     const robot_state::JointModel* base_joint_;
     Eigen::Affine3d desired_group_end_link_pose_;
+    Eigen::Affine3d other_desired_group_end_link_pose_;
     Eigen::Affine3d desired_base_link_pose_;
     std::string end_link_;
+    std::string other_end_link_;
+    std::string arm_name_;
+    std::string other_arm_name_;
 
     /* user callback function */
     boost::function<void (InteractiveRobot& robot)> user_callback_;
