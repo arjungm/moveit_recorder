@@ -85,16 +85,15 @@ class InteractiveRobot {
         const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback );
     
     void updateRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg);
-    void updatePlanningSceneCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg);
+    void resetMarkers();
 
     /* marker publishers */
     ros::NodeHandle nh_;
     ros::Subscriber robot_state_subscriber_;
-    ros::Subscriber planning_scene_subscriber_;
     ros::Publisher robot_state_publisher_;
     ros::Publisher marker_robot_state_publisher_;
     ros::Publisher marker_robot_pose_publisher_;
-    interactive_markers::InteractiveMarkerServer interactive_marker_server_;
+    boost::shared_ptr<interactive_markers::InteractiveMarkerServer> interactive_marker_server_;
     IMarker *imarker_robot_;
     IMarker *imarker_other_;
     IMarker *imarker_base_;
@@ -103,7 +102,6 @@ class InteractiveRobot {
     robot_model_loader::RobotModelLoader rm_loader_;
     robot_model::RobotModelPtr robot_model_;
     robot_state::RobotStatePtr robot_state_;
-    planning_scene::PlanningScenePtr planning_scene_;
 
     /* info about joint group we are manipulating */
     robot_state::JointModelGroup* group_;
@@ -112,6 +110,10 @@ class InteractiveRobot {
     Eigen::Affine3d desired_group_end_link_pose_;
     Eigen::Affine3d other_desired_group_end_link_pose_;
     Eigen::Affine3d desired_base_link_pose_;
+    
+    Eigen::Affine3d pose_of_ee_in_base_;
+    Eigen::Affine3d other_pose_of_ee_in_base_;
+
     std::string end_link_;
     std::string other_end_link_;
     std::string arm_name_;
@@ -128,7 +130,6 @@ class InteractiveRobot {
     static const ros::Duration min_delay_;
     int schedule_request_count_;
     bool robot_state_initialized_;
-    bool planning_scene_initialized_;
     bool base_changed_;
 };
 
