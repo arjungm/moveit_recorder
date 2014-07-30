@@ -1,0 +1,167 @@
+drawer1
+start
+3
+drawer1.start.1
+bl_caster_rotation_joint = 0
+bl_caster_l_wheel_joint = 0
+bl_caster_r_wheel_joint = 0
+br_caster_rotation_joint = 0
+br_caster_l_wheel_joint = 0
+br_caster_r_wheel_joint = 0
+fl_caster_rotation_joint = 0
+fl_caster_l_wheel_joint = 0
+fl_caster_r_wheel_joint = 0
+fr_caster_rotation_joint = 0
+fr_caster_l_wheel_joint = 0
+fr_caster_r_wheel_joint = 0
+torso_lift_joint = 0.16825
+head_pan_joint = 0
+head_tilt_joint = 0
+l_shoulder_pan_joint = 0.327993
+l_shoulder_lift_joint = -0.0494957
+l_upper_arm_roll_joint = 0
+l_elbow_flex_joint = -0.957363
+l_forearm_roll_joint = -0.204018
+l_wrist_flex_joint = -1.16094
+l_wrist_roll_joint = -0.188862
+l_gripper_l_finger_joint = 0
+l_gripper_l_finger_tip_joint = 0
+l_gripper_motor_slider_joint = 0
+l_gripper_motor_screw_joint = 0
+l_gripper_r_finger_joint = 0
+l_gripper_r_finger_tip_joint = 0
+l_gripper_joint = 0
+laser_tilt_mount_joint = 0
+r_shoulder_pan_joint = -0.41895
+r_shoulder_lift_joint = -0.0947516
+r_upper_arm_roll_joint = 0
+r_elbow_flex_joint = -0.814289
+r_forearm_roll_joint = 0.250344
+r_wrist_flex_joint = -1.24442
+r_wrist_roll_joint = 0.267077
+r_gripper_l_finger_joint = 0
+r_gripper_l_finger_tip_joint = 0
+r_gripper_motor_slider_joint = 0
+r_gripper_motor_screw_joint = 0
+r_gripper_r_finger_joint = 0
+r_gripper_r_finger_tip_joint = 0
+r_gripper_joint = 0
+torso_lift_motor_screw_joint = 0
+world_joint/x = 0
+world_joint/y = 0
+world_joint/theta = 0
+.
+drawer1.start.3
+bl_caster_rotation_joint = 0
+bl_caster_l_wheel_joint = 0
+bl_caster_r_wheel_joint = 0
+br_caster_rotation_joint = 0
+br_caster_l_wheel_joint = 0
+br_caster_r_wheel_joint = 0
+fl_caster_rotation_joint = 0
+fl_caster_l_wheel_joint = 0
+fl_caster_r_wheel_joint = 0
+fr_caster_rotation_joint = 0
+fr_caster_l_wheel_joint = 0
+fr_caster_r_wheel_joint = 0
+torso_lift_joint = 0.16825
+head_pan_joint = 0
+head_tilt_joint = 0
+l_shoulder_pan_joint = 0.327993
+l_shoulder_lift_joint = -0.0494957
+l_upper_arm_roll_joint = 0
+l_elbow_flex_joint = -0.957363
+l_forearm_roll_joint = -0.204018
+l_wrist_flex_joint = -1.16094
+l_wrist_roll_joint = -0.188862
+l_gripper_l_finger_joint = 0
+l_gripper_l_finger_tip_joint = 0
+l_gripper_motor_slider_joint = 0
+l_gripper_motor_screw_joint = 0
+l_gripper_r_finger_joint = 0
+l_gripper_r_finger_tip_joint = 0
+l_gripper_joint = 0
+laser_tilt_mount_joint = 0
+r_shoulder_pan_joint = -0.304085
+r_shoulder_lift_joint = 0.599408
+r_upper_arm_roll_joint = -0.424
+r_elbow_flex_joint = -1.75379
+r_forearm_roll_joint = -1.76418
+r_wrist_flex_joint = -1.98764
+r_wrist_roll_joint = -0.553659
+r_gripper_l_finger_joint = 0
+r_gripper_l_finger_tip_joint = 0
+r_gripper_motor_slider_joint = 0
+r_gripper_motor_screw_joint = 0
+r_gripper_r_finger_joint = 0
+r_gripper_r_finger_tip_joint = 0
+r_gripper_joint = 0
+torso_lift_motor_screw_joint = 0
+world_joint/x = 0
+world_joint/y = 0
+world_joint/theta = 0
+.
+drawer1.start.2
+bl_caster_rotation_joint = 0
+bl_caster_l_wheel_joint = 0
+bl_caster_r_wheel_joint = 0
+br_caster_rotation_joint = 0
+br_caster_l_wheel_joint = 0
+br_caster_r_wheel_joint = 0
+fl_caster_rotation_joint = 0
+fl_caster_l_wheel_joint = 0
+fl_caster_r_wheel_joint = 0
+fr_caster_rotation_joint = 0
+fr_caster_l_wheel_joint = 0
+fr_caster_r_wheel_joint = 0
+torso_lift_joint = 0.16825
+head_pan_joint = 0
+head_tilt_joint = 0
+l_shoulder_pan_joint = 0.327993
+l_shoulder_lift_joint = -0.0494957
+l_upper_arm_roll_joint = 0
+l_elbow_flex_joint = -0.957363
+l_forearm_roll_joint = -0.204018
+l_wrist_flex_joint = -1.16094
+l_wrist_roll_joint = -0.188862
+l_gripper_l_finger_joint = 0
+l_gripper_l_finger_tip_joint = 0
+l_gripper_motor_slider_joint = 0
+l_gripper_motor_screw_joint = 0
+l_gripper_r_finger_joint = 0
+l_gripper_r_finger_tip_joint = 0
+l_gripper_joint = 0
+laser_tilt_mount_joint = 0
+r_shoulder_pan_joint = -0.588686
+r_shoulder_lift_joint = 0.29393
+r_upper_arm_roll_joint = -1.062
+r_elbow_flex_joint = -1.706
+r_forearm_roll_joint = -1.43352
+r_wrist_flex_joint = -1.42667
+r_wrist_roll_joint = -0.531657
+r_gripper_l_finger_joint = 0
+r_gripper_l_finger_tip_joint = 0
+r_gripper_motor_slider_joint = 0
+r_gripper_motor_screw_joint = 0
+r_gripper_r_finger_joint = 0
+r_gripper_r_finger_tip_joint = 0
+r_gripper_joint = 0
+torso_lift_motor_screw_joint = 0
+world_joint/x = 0
+world_joint/y = 0
+world_joint/theta = 0
+.
+goal
+2
+link_constraint
+drawer1.goal.1
+r_wrist_roll_link
+xyz 0.585315 -0.470915 1.25001
+quat 0.459979 -2.47691e-09 -0.88793 -2.281e-09
+.
+link_constraint
+drawer1.goal.2
+r_wrist_roll_link
+xyz 0.508701 -0.227016 1.00387
+quat 0.282086 0.652772 0.649799 -0.268472
+.
