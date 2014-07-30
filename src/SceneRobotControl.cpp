@@ -120,7 +120,11 @@ void SceneRobotControl::writePosesToFile(const std::string& filepath,
     file << poses[i].position.y << " ";
     file << poses[i].position.z << std::endl;
     getRPY(poses[i], roll, pitch, yaw);
-    file << "rpy " << roll << " " << pitch << " " << yaw << std::endl;
+    //file << "rpy " << roll << " " << pitch << " " << yaw << std::endl;
+    file << "quat " << poses[i].orientation.w << " "
+                    << poses[i].orientation.x << " "
+                    << poses[i].orientation.y << " "
+                    << poses[i].orientation.z << std::endl;
     file << "." << std::endl;
   }
   file.close();
