@@ -14,7 +14,7 @@
   <!-- Start Benchmark Executable -->
   <node name="$(anon moveit_benchmark)" pkg="moveit_ros_benchmarks" type="moveit_run_benchmark" launch-prefix="$(arg launch_prefix)" 
 	args="$(arg cfg) --benchmark-planners --host $(arg host) --port $(arg port) --debug_bag $(arg debug_bag)" respawn="false" output="screen">
-    <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
+    <rosparam command="load" file="$(find moveit_recorder)/config/kinematics.yaml"/>
     <rosparam command="load" file="$(find moveit_recorder)/config/ompl_planning.yaml"/>
   </node>
 

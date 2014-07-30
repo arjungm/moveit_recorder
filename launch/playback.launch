@@ -45,7 +45,7 @@
 
   <arg name="port" default="33829" />
 
-  <arg name="views" default="$(find moveit_recorder)/test/view.bag" />
+  <arg name="views" default="$(find moveit_recorder)/videos/view.bag" />
 
   <arg name="save_dir" default="$(find moveit_recorder)/videos/" />
 

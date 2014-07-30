@@ -10,7 +10,7 @@
   <arg unless="$(arg config)" name="command_args" default="" />
   <arg     if="$(arg config)" name="command_args" default="-d $(find moveit_recorder)/launch/designit.rviz" />
 
-  <include file="$(find pr2_moveit_config)/launch/planning_context.launch">
+  <include file="$(find moveit_recorder)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
   </include>
 
@@ -23,7 +23,7 @@
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen" />
 
-  <include file="$(find pr2_moveit_config)/launch/move_group.launch">
+  <include file="$(find moveit_recorder)/launch/move_group.launch">
     <arg name="allow_trajectory_execution" value="true"/>
     <arg name="fake_execution" value="true"/>
     <arg name="info" value="true"/>
@@ -35,7 +35,7 @@
 
   <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"
       args="$(arg command_args)" output="screen">
-    <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
+    <rosparam command="load" file="$(find moveit_recorder)/config/kinematics.yaml"/>
   </node>
   
   <arg name="from_marker_topic" default="from_marker_state" />
@@ -66,6 +66,6 @@
               --from_marker_pose_topic $(arg from_marker_pose_topic) 
               --to_marker_topic $(arg to_marker_topic) 
               --save_dir $(arg save_dir) 
-              --planning_scene_topic $(arg planning_scene_topic)" launch-prefix="gdb -ex run --args">
+              --planning_scene_topic $(arg planning_scene_topic)">
   </node>
 </launch>
