@@ -49,7 +49,6 @@
 #include "moveit_recorder/trajectory_retimer.h"
 #include "moveit_recorder/animation_recorder.h"
 
-#include <moveit_recorder/AnimationRequest.h>
 #include <rosbag/bag.h>
 #include <rosbag/query.h>
 #include <rosbag/view.h>
@@ -124,23 +123,12 @@ int main(int argc, char** argv)
     viewbag.close();
     ROS_INFO("%d views loaded",(int)views.size());
 
-    // response sub
-    ros::Subscriber animation_sub = node_handle.subscribe("animation_response", 1, animationResponseCallback);
-    while(animation_sub.getNumPublishers() < 1)
-    {
-      ros::WallDuration sleep_t(0.5);
-      ROS_INFO("[Playback] Not enough publishers to \"%s\" topic...", "animation_response");
-      sleep_t.sleep();
-    }
-
-    // request pub
-    ros::Publisher animation_pub = node_handle.advertise<moveit_recorder::AnimationRequest>("animation_request",1);
-    while(animation_pub.getNumSubscribers() < 1)
-    {
-      ros::WallDuration sleep_t(0.5);
-      ROS_INFO("[Playback] Not enough subscribers to \"%s\" topic... ", "animation_request");
-      sleep_t.sleep();
-    }
+    AnimationRecorder recorder( "/rviz/camera_placement",
+                                "planning_scene",
+                                "/move_group/display_planned_path",
+                                "animation_status",
+                                "animation_response",
+                                node_handle);
 
     // ask the warehouse for the scenes
     std::vector<std::string> ps_names;
@@ -210,7 +198,7 @@ int main(int argc, char** argv)
           std::vector<view_controller_msgs::CameraPlacement>::iterator view_msg;
           for(view_msg=views.begin(); view_msg!=views.end(); ++view_msg)
           {
-            moveit_recorder::AnimationRequest req;
+            AnimationRequest req;
             
             view_msg->time_from_start = ros::Duration(0.1);
             ros::Time t_now = ros::Time::now();
@@ -225,21 +213,14 @@ int main(int argc, char** argv)
             
             // same filename, counter for viewpoint
             std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
-            bag.write(filepath.string(), ros::Time::now(), req.filepath);
+            // TODO
+            // bag.write(filepath.string(), ros::Time::now(), req.filepath);
             std::string video_file = filepath.string()+ext;
 
-            req.filepath.data = video_file;
+            req.filepath = video_file;
            
-            animation_pub.publish(req);
-            usleep(1000);
-            ready = false;
-
-            // blocks until recording and encoding is finish
-            while(ros::ok() && !ready)
-            {
-              ros::spinOnce(); //updates the ready status
-              usleep(1000);
-            }
+            recorder.record(req);
+            recorder.forkedRecord();
             ROS_INFO("RECORDING DONE!");
           }//view
           bag.close();

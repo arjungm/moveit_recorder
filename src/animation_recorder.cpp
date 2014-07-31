@@ -105,27 +105,27 @@ void AnimationRecorder::waitOnPublishersToTopic(const ros::Subscriber& sub, cons
   }
 }
 
-void AnimationRecorder::record(const boost::shared_ptr<moveit_recorder::AnimationRequest>& req)
+void AnimationRecorder::record(const AnimationRequest& req)
 {
   // set view
   ROS_INFO("Setting view");
-  view_control_pub_.publish(req->camera_placement);
+  view_control_pub_.publish(req.camera_placement);
 
   // display scene
   ROS_INFO("Setting scene");
-  planning_scene_pub_.publish(req->planning_scene);
+  planning_scene_pub_.publish(req.planning_scene);
   
   // display
   moveit_msgs::DisplayTrajectory display_trajectory;
-  display_trajectory.trajectory_start = req->motion_plan_request.start_state;
-  display_trajectory.trajectory.push_back(req->robot_trajectory);
+  display_trajectory.trajectory_start = req.motion_plan_request.start_state;
+  display_trajectory.trajectory.push_back(req.robot_trajectory);
   ROS_INFO("Displaying traj");
 
   // record command
   // char* recorder_argv_[4];
   recorder_argv_[0] = "recordmydesktop";
   recorder_argv_[1] = "-o";
-  recorder_argv_[2] = const_cast<char*>(req->filepath.data.c_str());
+  recorder_argv_[2] = const_cast<char*>(req.filepath.c_str());
   recorder_argv_[3] = NULL;
 
   recording_ready_ = true;
@@ -148,9 +148,6 @@ void AnimationRecorder::forkedRecord()
   }
   else
   {
-    std_msgs::Bool response_msg;
-    response_msg.data = false;
-
     // parent spins while the trajectory executes and kills child
     while(ros::ok() && !getMonitorStatus())
     {
@@ -160,7 +157,7 @@ void AnimationRecorder::forkedRecord()
     while(ros::ok() && getMonitorStatus())
     {
       ros::spinOnce();
-      animation_response_pub_.publish(response_msg);
+      usleep(1000);
     }
     kill(pid,SIGINT);
     usleep(1000);
@@ -190,8 +187,6 @@ void AnimationRecorder::forkedRecord()
           ROS_INFO("Child process has stopped.");
       }
     }
-    response_msg.data=true;
-    animation_response_pub_.publish(response_msg);
   }
 }
 
@@ -224,8 +219,6 @@ int main(int argc, char** argv)
                               "animation_response",
                               node_handle);
 
-  ros::Subscriber ar_sub = node_handle.subscribe("animation_request", 1, &AnimationRecorder::record, &recorder);
-  
   while(ros::ok())
   {
     ros::spinOnce();

@@ -49,10 +49,17 @@
 #include <moveit_msgs/MotionPlanRequest.h>
 #include <moveit_msgs/PlanningScene.h>
 
-#include <moveit_recorder/AnimationRequest.h>
-
 #ifndef ANIM_RECORDER_H
 #define ANIM_RECORDER_H
+
+struct AnimationRequest
+{
+  view_controller_msgs::CameraPlacement camera_placement;
+  moveit_msgs::PlanningScene planning_scene;
+  moveit_msgs::MotionPlanRequest motion_plan_request;
+  moveit_msgs::RobotTrajectory robot_trajectory;
+  std::string filepath;
+};
 
 class AnimationMonitor
 {
@@ -77,7 +84,7 @@ class AnimationRecorder
     ~AnimationRecorder();
     void waitOnPublishersToTopic(const ros::Subscriber& sub, const std::string& topic);
     void waitOnSubscribersToTopic(const ros::Publisher& pub, const std::string& topic);
-    void record(const boost::shared_ptr<moveit_recorder::AnimationRequest>& req);
+    void record(const AnimationRequest& req);
     bool getMonitorStatus();
     void forkedRecord();
     bool getRecordingReadyStatus();
