@@ -55,13 +55,6 @@
 
 #include <algorithm>
 
-bool static ready;
-
-void animationResponseCallback(const boost::shared_ptr<std_msgs::Bool const>& msg)
-{
-  ready = msg->data;
-}
-
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "playback");
