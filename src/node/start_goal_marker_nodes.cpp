@@ -36,12 +36,8 @@
 
 #include <ros/ros.h>
 #include <boost/program_options.hpp>
+#include "moveit_recorder/utils.h"
 #include "moveit_recorder/interactive_robot.h"
-
-inline std::string get_option(const boost::program_options::variables_map& vm, const std::string& option, const std::string& default_str)
-{
-  return vm.count(option) ? vm[option].as<std::string>() : default_str;
-}
 
 int main(int argc, char** argv)
 {  
@@ -76,14 +72,14 @@ int main(int argc, char** argv)
   }
   try
   {
-    std::string robot_description = get_option(vm, "robot_description", "robot_description");
-    std::string planning_scene_topic = get_option(vm, "planning_scene_topic", "planning_scene");
-    std::string to_marker_topic = get_option(vm, "to_marker_topic", "to_marker_state");
-    std::string from_marker_topic = get_option(vm, "from_marker_topic", "from_marker_state");
-    std::string from_marker_pose_topic = get_option(vm, "from_marker_pose_topic", "from_marker_pose");
-    std::string display_robot_topic = get_option(vm, "display_robot_topic", "interactive_robot_state");
-    std::string robot_marker_topic = get_option(vm, "robot_marker_topic", "interactive_robot_markers");
-    std::string interactive_marker_topic = get_option(vm, "interactive_marker_topic", "interactive_robot_imarkers");
+    std::string robot_description = utils::get_option(vm, "robot_description", "robot_description");
+    std::string planning_scene_topic = utils::get_option(vm, "planning_scene_topic", "planning_scene");
+    std::string to_marker_topic = utils::get_option(vm, "to_marker_topic", "to_marker_state");
+    std::string from_marker_topic = utils::get_option(vm, "from_marker_topic", "from_marker_state");
+    std::string from_marker_pose_topic = utils::get_option(vm, "from_marker_pose_topic", "from_marker_pose");
+    std::string display_robot_topic = utils::get_option(vm, "display_robot_topic", "interactive_robot_state");
+    std::string robot_marker_topic = utils::get_option(vm, "robot_marker_topic", "interactive_robot_markers");
+    std::string interactive_marker_topic = utils::get_option(vm, "interactive_marker_topic", "interactive_robot_imarkers");
 
     InteractiveRobot robot( robot_description,
                             planning_scene_topic,
