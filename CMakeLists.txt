@@ -120,9 +120,6 @@ target_link_libraries(moveit_recorder_lib  ${catkin_LIBRARIES})
 add_executable(playback_node src/node/playback.cpp)
 target_link_libraries(playback_node moveit_recorder_lib ${catkin_LIBRARIES})
 
-add_executable(recorder_node src/animation_recorder.cpp)
-target_link_libraries(recorder_node ${catkin_LIBRARIES})
-
 add_executable(viewpoint_recorder_node src/node/viewpoint_recorder_node.cpp)
 target_link_libraries(viewpoint_recorder_node moveit_recorder_lib ${catkin_LIBRARIES})
 
