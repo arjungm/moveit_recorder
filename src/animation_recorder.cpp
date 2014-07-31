@@ -133,7 +133,7 @@ void AnimationRecorder::record(const AnimationRequest& req)
   display_traj_pub_.publish(display_trajectory);
 }
 
-void AnimationRecorder::forkedRecord()
+void AnimationRecorder::startCapture()
 {
   // fork and record
   pid_t pid;
@@ -203,33 +203,4 @@ bool AnimationRecorder::getRecordingReadyStatus()
 void AnimationRecorder::setRecordingReadyStatus(bool status)
 {
   recording_ready_ = status;
-}
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "recorder");
-  ros::NodeHandle node_handle;  
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-  
-  AnimationRecorder recorder( "/rviz/camera_placement",
-                              "planning_scene",
-                              "/move_group/display_planned_path",
-                              "animation_status",
-                              "animation_response",
-                              node_handle);
-
-  while(ros::ok())
-  {
-    ros::spinOnce();
-    if( recorder.getRecordingReadyStatus() )
-    {
-      recorder.forkedRecord();
-      recorder.setRecordingReadyStatus(false);
-    }
-    usleep(1000);
-  }
-  ROS_ERROR("Animator Node Shutdown!");
-  ros::shutdown();
-  return 0;
 }

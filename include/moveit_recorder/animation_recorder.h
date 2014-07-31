@@ -86,7 +86,7 @@ class AnimationRecorder
     void waitOnSubscribersToTopic(const ros::Publisher& pub, const std::string& topic);
     void record(const AnimationRequest& req);
     bool getMonitorStatus();
-    void forkedRecord();
+    void startCapture();
     bool getRecordingReadyStatus();
     void setRecordingReadyStatus(bool status);
   private:
