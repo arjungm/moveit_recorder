@@ -79,7 +79,6 @@ class AnimationRecorder
                       const std::string& planning_scene_topic,
                       const std::string& display_traj_topic,
                       const std::string& anistatus__topic,
-                      const std::string& anim_response_topic,
                       ros::NodeHandle& nh);
     ~AnimationRecorder();
     void waitOnPublishersToTopic(const ros::Subscriber& sub, const std::string& topic);
@@ -95,7 +94,6 @@ class AnimationRecorder
     ros::Publisher display_traj_pub_;
     ros::Publisher planning_scene_pub_;
     ros::Subscriber animation_status_sub_;
-    ros::Publisher animation_response_pub_;
     ros::NodeHandle node_handle_;
 
     char* recorder_argv_[4];

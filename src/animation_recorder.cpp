@@ -63,7 +63,6 @@ AnimationRecorder::AnimationRecorder(const std::string& view_control_topic,
                                      const std::string& planning_scene_topic,
                                      const std::string& display_traj_topic, 
                                      const std::string& anistatus__topic,
-                                     const std::string& anim_response_topic, 
                                      ros::NodeHandle& nh) 
 : am_(), node_handle_(nh), recording_ready_(false)
 {
@@ -73,13 +72,11 @@ AnimationRecorder::AnimationRecorder(const std::string& view_control_topic,
   view_control_pub_ = node_handle_.advertise<view_controller_msgs::CameraPlacement>(view_control_topic, 1, true);
   display_traj_pub_ = node_handle_.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1, true);
   planning_scene_pub_ = node_handle_.advertise<moveit_msgs::PlanningScene>(planning_scene_topic, 1);
-  animation_response_pub_ = node_handle_.advertise<std_msgs::Bool>(anim_response_topic, 1);
 
   // wait til all topics are hooked up
   waitOnSubscribersToTopic(planning_scene_pub_, planning_scene_topic);
   waitOnSubscribersToTopic(display_traj_pub_,display_traj_topic);
   waitOnSubscribersToTopic(view_control_pub_, view_control_topic);
-  waitOnSubscribersToTopic(animation_response_pub_, anim_response_topic);
   waitOnPublishersToTopic(animation_status_sub_, anistatus__topic);
 }
 
