@@ -48,6 +48,7 @@
 
 #include "moveit_recorder/trajectory_retimer.h"
 #include "moveit_recorder/animation_recorder.h"
+#include "moveit_recorder/utils.h"
 
 #include <rosbag/bag.h>
 #include <rosbag/query.h>
@@ -70,6 +71,10 @@ int main(int argc, char** argv)
     ("host", boost::program_options::value<std::string>(), "Host for the MongoDB.")
     ("port", boost::program_options::value<std::size_t>(), "Port for the MongoDB.")
     ("views",boost::program_options::value<std::string>(), "Bag file for viewpoints")
+    ("camera_topic",boost::program_options::value<std::string>(), "Topic for publishing to the camera position")
+    ("planning_scene_topic",boost::program_options::value<std::string>(), "Topic for publishing the planning scene for recording")
+    ("display_traj_topic",boost::program_options::value<std::string>(), "Topic for publishing the trajectory for recorder")
+    ("animation_status_topic",boost::program_options::value<std::string>(), "Topic for listening to the completion of the replay")
     ("save_dir",boost::program_options::value<std::string>(), "Directory for saving videos");
 
   boost::program_options::variables_map vm;
@@ -88,7 +93,6 @@ int main(int argc, char** argv)
     std::string host = vm.count("host") ? vm["host"].as<std::string>() : "";
     size_t port = vm.count("port") ? vm["port"].as<std::size_t>() : 0;
     moveit_warehouse::PlanningSceneStorage pss(host, port);
-
     ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
 
     // set up the storage directory
@@ -117,11 +121,15 @@ int main(int argc, char** argv)
     ROS_INFO("%d views loaded",(int)views.size());
 
     //TODO change these to params
-    AnimationRecorder recorder( "/rviz/camera_placement",
-                                "planning_scene",
-                                "/move_group/display_planned_path",
-                                "animation_status",
-                                "animation_response",
+    std::string camera_placement_topic = utils::get_option(vm, "camera_topic", "/rviz/camera_placement");
+    std::string planning_scene_topic =utils:: get_option(vm, "planning_scene_topic", "planning_scene");
+    std::string display_traj_topic = utils::get_option(vm, "display_traj_topic", "/move_group/display_planned_path");
+    std::string anim_status_topic = utils::get_option(vm, "animation_status_topic", "animation_status");
+
+    AnimationRecorder recorder( camera_placement_topic,
+                                planning_scene_topic,
+                                display_traj_topic,
+                                anim_status_topic,
                                 node_handle);
 
     // ask the warehouse for the scenes
