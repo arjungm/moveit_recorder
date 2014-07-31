@@ -35,18 +35,11 @@
     <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
   </node>
 
-  <node name="recorder" pkg="moveit_recorder" type="recorder_node"
-    respawn="true" output="screen">
-  </node>
-
   <!-- LAUNCH PLAYBACK NODE -->
 
   <arg name="host" default="127.0.0.1" />
-
   <arg name="port" default="33829" />
-
   <arg name="views" default="$(find moveit_recorder)/videos/view.bag" />
-
   <arg name="save_dir" default="$(find moveit_recorder)/videos/" />
 
   <node name="playback" pkg="moveit_recorder" type="playback_node" 
