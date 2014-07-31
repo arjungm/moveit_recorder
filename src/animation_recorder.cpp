@@ -4,47 +4,47 @@
 #include <sys/wait.h>
 
 
-AnimationMonitor::AnimationMonitor() : m_last_msg(false), m_status(false) {}
+AnimationMonitor::AnimationMonitor() : last_msg_(false), status_(false) {}
 
-bool AnimationMonitor::getStatus() { return m_status; }
+bool AnimationMonitor::getStatus() { return status_; }
 
 void AnimationMonitor::statusCallback(const boost::shared_ptr<std_msgs::Bool const>& status_msg)
 {
-  if(!m_last_msg && status_msg->data)
+  if(!last_msg_ && status_msg->data)
   {
-    m_status = true;
+    status_ = true;
     ROS_INFO("Monitor: Animation started");
   }
-  else if(m_last_msg && !status_msg->data)
+  else if(last_msg_ && !status_msg->data)
   {
-    m_status = false;
+    status_ = false;
     ROS_INFO("Monitor: Animation terminated");
   }
-  m_last_msg = status_msg->data;
+  last_msg_ = status_msg->data;
 }
 
-AnimationRecorder::AnimationRecorder(std::string view_control_topic, 
-                                     std::string planning_scene_topic,
-                                     std::string display_traj_topic, 
-                                     std::string anim_status_topic,
-                                     std::string anim_response_topic, 
+AnimationRecorder::AnimationRecorder(const std::string& view_control_topic, 
+                                     const std::string& planning_scene_topic,
+                                     const std::string& display_traj_topic, 
+                                     const std::string& anistatus__topic,
+                                     const std::string& anim_response_topic, 
                                      ros::NodeHandle& nh) 
-: m_am(), m_node_handle(nh), m_recording_ready(false)
+: am_(), node_handle_(nh), recording_ready_(false)
 {
   // load all pubs and subs
-  m_animation_status_sub = m_node_handle.subscribe(anim_status_topic, 1, &AnimationMonitor::statusCallback, &m_am);
+  animation_status_sub_ = node_handle_.subscribe(anistatus__topic, 1, &AnimationMonitor::statusCallback, &am_);
 
-  m_view_control_pub = m_node_handle.advertise<view_controller_msgs::CameraPlacement>(view_control_topic, 1, true);
-  m_display_traj_pub = m_node_handle.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1, true);
-  m_planning_scene_pub = m_node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic, 1);
-  m_animation_response_pub = m_node_handle.advertise<std_msgs::Bool>(anim_response_topic, 1);
+  view_control_pub_ = node_handle_.advertise<view_controller_msgs::CameraPlacement>(view_control_topic, 1, true);
+  display_traj_pub_ = node_handle_.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1, true);
+  planning_scene_pub_ = node_handle_.advertise<moveit_msgs::PlanningScene>(planning_scene_topic, 1);
+  animation_response_pub_ = node_handle_.advertise<std_msgs::Bool>(anim_response_topic, 1);
 
   // wait til all topics are hooked up
-  waitOnSubscribersToTopic(m_planning_scene_pub, planning_scene_topic);
-  waitOnSubscribersToTopic(m_display_traj_pub,display_traj_topic);
-  waitOnSubscribersToTopic(m_view_control_pub, view_control_topic);
-  waitOnSubscribersToTopic(m_animation_response_pub, anim_response_topic);
-  waitOnPublishersToTopic(m_animation_status_sub, anim_status_topic);
+  waitOnSubscribersToTopic(planning_scene_pub_, planning_scene_topic);
+  waitOnSubscribersToTopic(display_traj_pub_,display_traj_topic);
+  waitOnSubscribersToTopic(view_control_pub_, view_control_topic);
+  waitOnSubscribersToTopic(animation_response_pub_, anim_response_topic);
+  waitOnPublishersToTopic(animation_status_sub_, anistatus__topic);
 }
 
 AnimationRecorder::~AnimationRecorder() {}
@@ -73,11 +73,11 @@ void AnimationRecorder::record(const boost::shared_ptr<moveit_recorder::Animatio
 {
   // set view
   ROS_INFO("Setting view");
-  m_view_control_pub.publish(req->camera_placement);
+  view_control_pub_.publish(req->camera_placement);
 
   // display scene
   ROS_INFO("Setting scene");
-  m_planning_scene_pub.publish(req->planning_scene);
+  planning_scene_pub_.publish(req->planning_scene);
   
   // display
   moveit_msgs::DisplayTrajectory display_trajectory;
@@ -86,15 +86,15 @@ void AnimationRecorder::record(const boost::shared_ptr<moveit_recorder::Animatio
   ROS_INFO("Displaying traj");
 
   // record command
-  // char* m_recorder_argv[4];
-  m_recorder_argv[0] = "recordmydesktop";
-  m_recorder_argv[1] = "-o";
-  m_recorder_argv[2] = const_cast<char*>(req->filepath.data.c_str());
-  m_recorder_argv[3] = NULL;
+  // char* recorder_argv_[4];
+  recorder_argv_[0] = "recordmydesktop";
+  recorder_argv_[1] = "-o";
+  recorder_argv_[2] = const_cast<char*>(req->filepath.data.c_str());
+  recorder_argv_[3] = NULL;
 
-  m_recording_ready = true;
+  recording_ready_ = true;
   
-  m_display_traj_pub.publish(display_trajectory);
+  display_traj_pub_.publish(display_trajectory);
 }
 
 void AnimationRecorder::forkedRecord()
@@ -107,7 +107,7 @@ void AnimationRecorder::forkedRecord()
   if(pid==0)
   {
     // child process records
-    execvp(m_recorder_argv[0], m_recorder_argv);
+    execvp(recorder_argv_[0], recorder_argv_);
     exit(0);
   }
   else
@@ -124,7 +124,7 @@ void AnimationRecorder::forkedRecord()
     while(ros::ok() && getMonitorStatus())
     {
       ros::spinOnce();
-      m_animation_response_pub.publish(response_msg);
+      animation_response_pub_.publish(response_msg);
     }
     kill(pid,SIGINT);
     usleep(1000);
@@ -155,23 +155,23 @@ void AnimationRecorder::forkedRecord()
       }
     }
     response_msg.data=true;
-    m_animation_response_pub.publish(response_msg);
+    animation_response_pub_.publish(response_msg);
   }
 }
 
 bool AnimationRecorder::getMonitorStatus()
 {
-    return m_am.getStatus();
+    return am_.getStatus();
 }
 
 bool AnimationRecorder::getRecordingReadyStatus()
 {
-  return m_recording_ready;
+  return recording_ready_;
 }
 
 void AnimationRecorder::setRecordingReadyStatus(bool status)
 {
-  m_recording_ready = status;
+  recording_ready_ = status;
 }
 
 int main(int argc, char** argv)
