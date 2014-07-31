@@ -54,7 +54,7 @@
           --planning_scene_topic $(arg planning_scene_topic)
           --display_traj_topic $(arg display_traj_topic)
           --animation_status_topic $(arg animation_status_topic)
-          --save_dir $(arg save_dir)" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
+          --save_dir $(arg save_dir)" respawn="false" output="screen">
   </node>
 
 </launch>
