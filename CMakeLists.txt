@@ -110,29 +110,29 @@ include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
-add_library(moveit_recorder_lib src/TrajectoryRetimer.cpp
+add_library(moveit_recorder_lib src/trajectory_retimer.cpp
                                 src/cli_controller.cpp
-                                src/SceneRobotControl.cpp
-                                src/InteractiveRobotMarker.cpp
-                                src/InteractiveRobot.cpp
+                                src/scene_robot_control.cpp
+                                src/interactive_robot_marker.cpp
+                                src/interactive_robot.cpp
                                 src/pose_string.cpp) 
 target_link_libraries(moveit_recorder_lib  ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
-add_executable(playback_node src/playback.cpp)
+add_executable(playback_node src/node/playback.cpp)
 target_link_libraries(playback_node moveit_recorder_lib ${catkin_LIBRARIES})
 
-add_executable(recorder_node src/AnimationRecorder.cpp)
+add_executable(recorder_node src/animation_recorder.cpp)
 target_link_libraries(recorder_node ${catkin_LIBRARIES})
 
-add_executable(viewpoint_recorder_node src/viewpoint_recorder_node.cpp)
+add_executable(viewpoint_recorder_node src/node/viewpoint_recorder_node.cpp)
 target_link_libraries(viewpoint_recorder_node moveit_recorder_lib ${catkin_LIBRARIES})
 
-add_executable(benchmark_designer_node src/BenchmarkDesigner.cpp)
+add_executable(benchmark_designer_node src/benchmark_designer.cpp)
 target_link_libraries(benchmark_designer_node moveit_recorder_lib 
                                               ${catkin_LIBRARIES})
 
-add_executable(markers_node src/start_goal_marker_nodes.cpp)
+add_executable(markers_node src/node/start_goal_marker_nodes.cpp)
 target_link_libraries(markers_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
