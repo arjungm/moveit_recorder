@@ -123,6 +123,7 @@ int main(int argc, char** argv)
     viewbag.close();
     ROS_INFO("%d views loaded",(int)views.size());
 
+    //TODO change these to params
     AnimationRecorder recorder( "/rviz/camera_placement",
                                 "planning_scene",
                                 "/move_group/display_planned_path",
@@ -213,14 +214,14 @@ int main(int argc, char** argv)
             
             // same filename, counter for viewpoint
             std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
-            // TODO
-            // bag.write(filepath.string(), ros::Time::now(), req.filepath);
+            std_msgs::String filemsg; filemsg.data = req.filepath;
+            bag.write(filepath.string(), ros::Time::now(), filemsg);
             std::string video_file = filepath.string()+ext;
 
             req.filepath = video_file;
            
             recorder.record(req);
-            recorder.forkedRecord();
+            recorder.startCapture();
             ROS_INFO("RECORDING DONE!");
           }//view
           bag.close();
