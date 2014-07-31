@@ -1,5 +1,0 @@
-view_controller_msgs/CameraPlacement camera_placement
-moveit_msgs/PlanningScene planning_scene
-moveit_msgs/MotionPlanRequest motion_plan_request
-moveit_msgs/RobotTrajectory robot_trajectory
-std_msgs/String filepath
