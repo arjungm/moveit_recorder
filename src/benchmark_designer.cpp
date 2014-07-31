@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <moveit_recorder/cli_controller.h>
 #include <moveit/warehouse/planning_scene_storage.h>
-#include <moveit_recorder/SceneRobotControl.h>
+#include <moveit_recorder/scene_robot_control.h>
 
 inline std::string get_option(const boost::program_options::variables_map& vm, const std::string& option, const std::string& default_str)
 {

@@ -1,4 +1,4 @@
-#include "moveit_recorder/AnimationRecorder.h"
+#include "moveit_recorder/animation_recorder.h"
 #include <sstream>
 #include <signal.h>
 #include <sys/wait.h>

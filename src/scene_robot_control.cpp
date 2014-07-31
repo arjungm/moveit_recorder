@@ -1,6 +1,6 @@
 #include <moveit/robot_state/conversions.h>
 #include <moveit/collision_detection/collision_common.h>
-#include "moveit_recorder/SceneRobotControl.h"
+#include "moveit_recorder/scene_robot_control.h"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <fstream>

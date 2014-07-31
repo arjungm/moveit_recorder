@@ -1,4 +1,4 @@
-#include <moveit_recorder/TrajectoryRetimer.h>
+#include <moveit_recorder/trajectory_retimer.h>
 
 TrajectoryRetimer::TrajectoryRetimer(std::string robot_desc, std::string group_name) : m_traj_retimer(),
    m_psm(robot_desc),

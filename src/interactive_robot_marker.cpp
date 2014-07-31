@@ -1,4 +1,4 @@
-#include "moveit_recorder/InteractiveRobotMarker.h"
+#include "moveit_recorder/interactive_robot_marker.h"
 #include "moveit_recorder/pose_string.h"
 #include <eigen_conversions/eigen_msg.h>
 

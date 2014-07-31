@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include <boost/program_options.hpp>
-#include "moveit_recorder/InteractiveRobot.h"
+#include "moveit_recorder/interactive_robot.h"
 
 inline std::string get_option(const boost::program_options::variables_map& vm, const std::string& option, const std::string& default_str)
 {

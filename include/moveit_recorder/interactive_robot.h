@@ -8,7 +8,7 @@
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit_msgs/DisplayRobotState.h>
-#include "moveit_recorder/InteractiveRobotMarker.h"
+#include "moveit_recorder/interactive_robot_marker.h"
 
 
 /** Keeps track of the state of the robot and the world.

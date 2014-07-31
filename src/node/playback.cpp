@@ -10,8 +10,8 @@
 
 #include <view_controller_msgs/CameraPlacement.h>
 
-#include "moveit_recorder/TrajectoryRetimer.h"
-#include "moveit_recorder/AnimationRecorder.h"
+#include "moveit_recorder/trajectory_retimer.h"
+#include "moveit_recorder/animation_recorder.h"
 
 #include <moveit_recorder/AnimationRequest.h>
 #include <rosbag/bag.h>

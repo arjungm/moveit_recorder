@@ -1,4 +1,4 @@
-#include "moveit_recorder/InteractiveRobot.h"
+#include "moveit_recorder/interactive_robot.h"
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit/robot_state/conversions.h>
 #include <tf/transform_datatypes.h>
