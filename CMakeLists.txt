@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_msgs
   std_msgs
   rosbag
-  message_generation
   roscpp
 )
 
@@ -53,10 +52,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  AnimationRequest.msg
-)
+# add_message_files(
+#   FILES
+#   AnimationRequest.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -73,13 +72,13 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  geometry_msgs
-  view_controller_msgs
-  moveit_msgs
-  std_msgs  # Or other packages containing msgs
-)
+# generate_messages(
+#  DEPENDENCIES
+#  geometry_msgs
+#  view_controller_msgs
+#  moveit_msgs
+#  std_msgs  # Or other packages containing msgs
+# )
 
 ###################################
 ## catkin specific configuration ##
@@ -95,8 +94,6 @@ catkin_package(
     include
   LIBRARIES 
     moveit_recorder_lib
-  CATKIN_DEPENDS 
-    message_runtime
 #  DEPENDS system_lib
 )
 
@@ -115,7 +112,8 @@ add_library(moveit_recorder_lib src/trajectory_retimer.cpp
                                 src/scene_robot_control.cpp
                                 src/interactive_robot_marker.cpp
                                 src/interactive_robot.cpp
-                                src/pose_string.cpp) 
+                                src/pose_string.cpp
+                                src/animation_recorder.cpp) 
 target_link_libraries(moveit_recorder_lib  ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
