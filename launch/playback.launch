@@ -40,13 +40,21 @@
   <arg name="host" default="127.0.0.1" />
   <arg name="port" default="33829" />
   <arg name="views" default="$(find moveit_recorder)/videos/view.bag" />
+  <arg name="camera_topic" default="/rviz/camera_placement" />
+  <arg name="planning_scene_topic" default="planning_scene" />
+  <arg name="display_traj_topic" default="/move_group/display_planned_path" />
+  <arg name="animation_status_topic" default="animation_status" />
   <arg name="save_dir" default="$(find moveit_recorder)/videos/" />
 
   <node name="playback" pkg="moveit_recorder" type="playback_node" 
     args="--host $(arg host) 
           --port $(arg port) 
-          --views $(arg views) 
-          --save_dir $(arg save_dir)" respawn="false" output="screen">
+          --views $(arg views)
+          --camera_topic $(arg camera_topic)
+          --planning_scene_topic $(arg planning_scene_topic)
+          --display_traj_topic $(arg display_traj_topic)
+          --animation_status_topic $(arg animation_status_topic)
+          --save_dir $(arg save_dir)" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
   </node>
 
 </launch>
