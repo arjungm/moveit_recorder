@@ -17,13 +17,13 @@ fr_caster_r_wheel_joint = 0
 torso_lift_joint = 0.16825
 head_pan_joint = 0
 head_tilt_joint = 0
-l_shoulder_pan_joint = 0.327993
-l_shoulder_lift_joint = -0.0494957
-l_upper_arm_roll_joint = 0
-l_elbow_flex_joint = -0.957363
-l_forearm_roll_joint = -0.204018
-l_wrist_flex_joint = -1.16094
-l_wrist_roll_joint = -0.188862
+l_shoulder_pan_joint = 1.67597
+l_shoulder_lift_joint = 1.29615
+l_upper_arm_roll_joint = 1.4
+l_elbow_flex_joint = -1.61593
+l_forearm_roll_joint = 0.435227
+l_wrist_flex_joint = -0.374551
+l_wrist_roll_joint = -0.766277
 l_gripper_l_finger_joint = 0
 l_gripper_l_finger_tip_joint = 0
 l_gripper_motor_slider_joint = 0
@@ -32,63 +32,13 @@ l_gripper_r_finger_joint = 0
 l_gripper_r_finger_tip_joint = 0
 l_gripper_joint = 0
 laser_tilt_mount_joint = 0
-r_shoulder_pan_joint = -0.41895
-r_shoulder_lift_joint = -0.0947516
+r_shoulder_pan_joint = -0.56308
+r_shoulder_lift_joint = 0.800074
 r_upper_arm_roll_joint = 0
-r_elbow_flex_joint = -0.814289
-r_forearm_roll_joint = 0.250344
-r_wrist_flex_joint = -1.24442
-r_wrist_roll_joint = 0.267077
-r_gripper_l_finger_joint = 0
-r_gripper_l_finger_tip_joint = 0
-r_gripper_motor_slider_joint = 0
-r_gripper_motor_screw_joint = 0
-r_gripper_r_finger_joint = 0
-r_gripper_r_finger_tip_joint = 0
-r_gripper_joint = 0
-torso_lift_motor_screw_joint = 0
-world_joint/x = 0
-world_joint/y = 0
-world_joint/theta = 0
-.
-drawer1.start.3
-bl_caster_rotation_joint = 0
-bl_caster_l_wheel_joint = 0
-bl_caster_r_wheel_joint = 0
-br_caster_rotation_joint = 0
-br_caster_l_wheel_joint = 0
-br_caster_r_wheel_joint = 0
-fl_caster_rotation_joint = 0
-fl_caster_l_wheel_joint = 0
-fl_caster_r_wheel_joint = 0
-fr_caster_rotation_joint = 0
-fr_caster_l_wheel_joint = 0
-fr_caster_r_wheel_joint = 0
-torso_lift_joint = 0.16825
-head_pan_joint = 0
-head_tilt_joint = 0
-l_shoulder_pan_joint = 0.327993
-l_shoulder_lift_joint = -0.0494957
-l_upper_arm_roll_joint = 0
-l_elbow_flex_joint = -0.957363
-l_forearm_roll_joint = -0.204018
-l_wrist_flex_joint = -1.16094
-l_wrist_roll_joint = -0.188862
-l_gripper_l_finger_joint = 0
-l_gripper_l_finger_tip_joint = 0
-l_gripper_motor_slider_joint = 0
-l_gripper_motor_screw_joint = 0
-l_gripper_r_finger_joint = 0
-l_gripper_r_finger_tip_joint = 0
-l_gripper_joint = 0
-laser_tilt_mount_joint = 0
-r_shoulder_pan_joint = -0.304085
-r_shoulder_lift_joint = 0.599408
-r_upper_arm_roll_joint = -0.424
-r_elbow_flex_joint = -1.75379
-r_forearm_roll_joint = -1.76418
-r_wrist_flex_joint = -1.98764
-r_wrist_roll_joint = -0.553659
+r_elbow_flex_joint = -1.19095
+r_forearm_roll_joint = -2.08705
+r_wrist_flex_joint = -0.660676
+r_wrist_roll_joint = 2.20717
 r_gripper_l_finger_joint = 0
 r_gripper_l_finger_tip_joint = 0
 r_gripper_motor_slider_joint = 0
@@ -117,13 +67,13 @@ fr_caster_r_wheel_joint = 0
 torso_lift_joint = 0.16825
 head_pan_joint = 0
 head_tilt_joint = 0
-l_shoulder_pan_joint = 0.327993
-l_shoulder_lift_joint = -0.0494957
-l_upper_arm_roll_joint = 0
-l_elbow_flex_joint = -0.957363
-l_forearm_roll_joint = -0.204018
-l_wrist_flex_joint = -1.16094
-l_wrist_roll_joint = -0.188862
+l_shoulder_pan_joint = 1.67597
+l_shoulder_lift_joint = 1.29615
+l_upper_arm_roll_joint = 1.4
+l_elbow_flex_joint = -1.61593
+l_forearm_roll_joint = 0.435227
+l_wrist_flex_joint = -0.374551
+l_wrist_roll_joint = -0.766277
 l_gripper_l_finger_joint = 0
 l_gripper_l_finger_tip_joint = 0
 l_gripper_motor_slider_joint = 0
@@ -132,13 +82,63 @@ l_gripper_r_finger_joint = 0
 l_gripper_r_finger_tip_joint = 0
 l_gripper_joint = 0
 laser_tilt_mount_joint = 0
-r_shoulder_pan_joint = -0.588686
-r_shoulder_lift_joint = 0.29393
-r_upper_arm_roll_joint = -1.062
-r_elbow_flex_joint = -1.706
-r_forearm_roll_joint = -1.43352
-r_wrist_flex_joint = -1.42667
-r_wrist_roll_joint = -0.531657
+r_shoulder_pan_joint = -0.0394037
+r_shoulder_lift_joint = -0.165934
+r_upper_arm_roll_joint = -0.72
+r_elbow_flex_joint = -1.22677
+r_forearm_roll_joint = -2.9923
+r_wrist_flex_joint = -1.22299
+r_wrist_roll_joint = -2.46452
+r_gripper_l_finger_joint = 0
+r_gripper_l_finger_tip_joint = 0
+r_gripper_motor_slider_joint = 0
+r_gripper_motor_screw_joint = 0
+r_gripper_r_finger_joint = 0
+r_gripper_r_finger_tip_joint = 0
+r_gripper_joint = 0
+torso_lift_motor_screw_joint = 0
+world_joint/x = 0
+world_joint/y = 0
+world_joint/theta = 0
+.
+drawer1.start.3
+bl_caster_rotation_joint = 0
+bl_caster_l_wheel_joint = 0
+bl_caster_r_wheel_joint = 0
+br_caster_rotation_joint = 0
+br_caster_l_wheel_joint = 0
+br_caster_r_wheel_joint = 0
+fl_caster_rotation_joint = 0
+fl_caster_l_wheel_joint = 0
+fl_caster_r_wheel_joint = 0
+fr_caster_rotation_joint = 0
+fr_caster_l_wheel_joint = 0
+fr_caster_r_wheel_joint = 0
+torso_lift_joint = 0.16825
+head_pan_joint = 0
+head_tilt_joint = 0
+l_shoulder_pan_joint = 1.67597
+l_shoulder_lift_joint = 1.29615
+l_upper_arm_roll_joint = 1.4
+l_elbow_flex_joint = -1.61593
+l_forearm_roll_joint = 0.435227
+l_wrist_flex_joint = -0.374551
+l_wrist_roll_joint = -0.766277
+l_gripper_l_finger_joint = 0
+l_gripper_l_finger_tip_joint = 0
+l_gripper_motor_slider_joint = 0
+l_gripper_motor_screw_joint = 0
+l_gripper_r_finger_joint = 0
+l_gripper_r_finger_tip_joint = 0
+l_gripper_joint = 0
+laser_tilt_mount_joint = 0
+r_shoulder_pan_joint = -0.554246
+r_shoulder_lift_joint = 0.0385877
+r_upper_arm_roll_joint = -1.45794
+r_elbow_flex_joint = -1.69675
+r_forearm_roll_joint = -1.44091
+r_wrist_flex_joint = -1.08978
+r_wrist_roll_joint = 2.70095
 r_gripper_l_finger_joint = 0
 r_gripper_l_finger_tip_joint = 0
 r_gripper_motor_slider_joint = 0
@@ -152,16 +152,22 @@ world_joint/y = 0
 world_joint/theta = 0
 .
 goal
-2
+3
 link_constraint
 drawer1.goal.1
 r_wrist_roll_link
-xyz 0.585315 -0.470915 1.25001
-quat 0.459979 -2.47691e-09 -0.88793 -2.281e-09
+xyz 0.521171 -0.548551 0.794262
+quat 0.999946 -8.55102e-09 -0.010382 -4.45981e-08
 .
 link_constraint
 drawer1.goal.2
 r_wrist_roll_link
-xyz 0.508701 -0.227016 1.00387
-quat 0.282086 0.652772 0.649799 -0.268472
+xyz 0.521171 -0.0111029 1.26695
+quat 0.998606 -0.00146127 -0.0391201 0.0354063
+.
+link_constraint
+drawer1.goal.3
+r_wrist_roll_link
+xyz 0.508349 -0.161455 0.980886
+quat 0.658076 -0.350209 0.304584 0.59289
 .
