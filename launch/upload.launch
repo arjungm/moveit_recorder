@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="user" />
+  <arg name="pass" />
+  <arg name="save_dir" default="$(find moveit_recorder)/videos" />
+
+  <node name="uploader_node" pkg="moveit_recorder" type="uploader_node" 
+    args="--save_dir $(arg save_dir) 
+          --user $(arg user)
+          --pass $(arg pass)"
+    respawn="false" output="screen">
+  </node>
+  
+</launch>
+
