@@ -193,9 +193,9 @@ int main(int argc, char** argv)
 
           // save into lookup
           rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Append);
-          bag.write<moveit_msgs::PlanningScene>(filepath.string(), ros::Time::now(), ps_msg);
-          bag.write<moveit_msgs::MotionPlanRequest>(filepath.string(), ros::Time::now(), mpr_msg);
-          bag.write<moveit_msgs::RobotTrajectory>(filepath.string(), ros::Time::now(), rt_msg);
+          bag.write<moveit_msgs::PlanningScene>(filepath.string()+"_ps", ros::Time::now(), ps_msg);
+          bag.write<moveit_msgs::MotionPlanRequest>(filepath.string()+"_mpr", ros::Time::now(), mpr_msg);
+          bag.write<moveit_msgs::RobotTrajectory>(filepath.string()+"_rt", ros::Time::now(), rt_msg);
           
           int view_counter=0;
           std::vector<view_controller_msgs::CameraPlacement>::iterator view_msg;

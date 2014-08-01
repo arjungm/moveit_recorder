@@ -103,11 +103,12 @@ int main(int argc, char** argv)
         topics.push_back(info->topic);
     std::cout << topics.size() << " topics in bag" << std::endl;
     
-    rosbag::View view_topics(bag, rosbag::TopicQuery(topics[0]));
+    rosbag::View view_topics(bag, rosbag::TopicQuery(topics));
 
     for( rosbag::View::iterator it=view_topics.begin(); it!=view_topics.end(); ++it)
     {
-      std_msgs::String::ConstPtr strmsg = it->instantiate<std_msgs::String>();
+      std::cout << it->getDataType() << std::endl;
+      std_msgs::String::Ptr strmsg = it->instantiate<std_msgs::String>();
       if(strmsg!=NULL)
         std::cout << "Have message!" << std::endl;
       count++;
