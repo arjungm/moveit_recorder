@@ -40,6 +40,7 @@
 
 #include <moveit/warehouse/planning_scene_storage.h>
 
+#include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -192,9 +193,9 @@ int main(int argc, char** argv)
 
           // save into lookup
           rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Append);
-          bag.write(filepath.string(), ros::Time::now(), ps_msg);
-          bag.write(filepath.string(), ros::Time::now(), mpr_msg);
-          bag.write(filepath.string(), ros::Time::now(), rt_msg);
+          bag.write<moveit_msgs::PlanningScene>(filepath.string(), ros::Time::now(), ps_msg);
+          bag.write<moveit_msgs::MotionPlanRequest>(filepath.string(), ros::Time::now(), mpr_msg);
+          bag.write<moveit_msgs::RobotTrajectory>(filepath.string(), ros::Time::now(), rt_msg);
           
           int view_counter=0;
           std::vector<view_controller_msgs::CameraPlacement>::iterator view_msg;
@@ -215,11 +216,13 @@ int main(int argc, char** argv)
             
             // same filename, counter for viewpoint
             std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
-            std_msgs::String filemsg; filemsg.data = req.filepath;
-            bag.write(filepath.string(), ros::Time::now(), filemsg);
             std::string video_file = filepath.string()+ext;
-
+            
             req.filepath = video_file;
+
+            // save to bag
+            std_msgs::String filemsg; filemsg.data = req.filepath;
+            bag.write<std_msgs::String>(filepath.string(), ros::Time::now(), filemsg);
            
             recorder.record(req);
             recorder.startCapture();
