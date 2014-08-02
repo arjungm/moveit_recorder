@@ -191,11 +191,20 @@ int main(int argc, char** argv)
           boost::filesystem::path filename( vid_filename );
           boost::filesystem::path filepath = storage_dir / filename;
 
+          // fix topic name
+          std::string topicname = filepath.string();
+          std::replace(topicname.begin(), topicname.end(), '-','_');
+          std::replace(topicname.begin(), topicname.end(), ' ','_');
+          std::replace(topicname.begin(), topicname.end(), ':','_');
+
           // save into lookup
           rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Append);
-          bag.write<moveit_msgs::PlanningScene>(filepath.string()+"_ps", ros::Time::now(), ps_msg);
-          bag.write<moveit_msgs::MotionPlanRequest>(filepath.string()+"_mpr", ros::Time::now(), mpr_msg);
-          bag.write<moveit_msgs::RobotTrajectory>(filepath.string()+"_rt", ros::Time::now(), rt_msg);
+          bag.write<moveit_msgs::PlanningScene>( (boost::filesystem::path("/ps")/topicname).string(), 
+                                                  ros::Time::now(), ps_msg);
+          bag.write<moveit_msgs::MotionPlanRequest>( (boost::filesystem::path("/mpr")/topicname).string(), 
+                                                    ros::Time::now(), mpr_msg);
+          bag.write<moveit_msgs::RobotTrajectory>( (boost::filesystem::path("/rt")/topicname).string(), 
+                                                  ros::Time::now(), rt_msg);
           
           int view_counter=0;
           std::vector<view_controller_msgs::CameraPlacement>::iterator view_msg;
@@ -222,7 +231,8 @@ int main(int argc, char** argv)
 
             // save to bag
             std_msgs::String filemsg; filemsg.data = req.filepath;
-            bag.write<std_msgs::String>(filepath.string(), ros::Time::now(), filemsg);
+            bag.write<std_msgs::String>( (boost::filesystem::path("/vid")/topicname /ext).string(), 
+                                          ros::Time::now(), filemsg);
            
             recorder.record(req);
             recorder.startCapture();
