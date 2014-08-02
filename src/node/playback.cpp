@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 
             // save to bag
             std_msgs::String filemsg; filemsg.data = req.filepath;
-            bag.write<std_msgs::String>( (boost::filesystem::path("/vid")/topicname /ext).string(), 
+            bag.write<std_msgs::String>( (boost::filesystem::path("/vid")/topicname).string(), 
                                           ros::Time::now(), filemsg);
            
             recorder.record(req);
