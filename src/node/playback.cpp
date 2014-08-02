@@ -198,6 +198,10 @@ int main(int argc, char** argv)
           std::replace(topicname.begin(), topicname.end(), ':','_');
 
           // save into lookup
+          // topics for videos are /ps/xxxx/ for the planning scene
+          //                       /mpr/xxxx/ for the motion plan request
+          //                       /rt/xxxx/ for the robot trajectory
+          //                       /vid/xxxx/ for the videos
           rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Append);
           bag.write<moveit_msgs::PlanningScene>( (boost::filesystem::path("/ps")/topicname).string(), 
                                                   ros::Time::now(), ps_msg);
