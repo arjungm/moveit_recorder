@@ -91,38 +91,38 @@ class SceneRobotControl
                           const std::vector<geometry_msgs::Pose>& poses);
     
   private:
-    robot_model_loader::RobotModelLoaderPtr m_robot_model_loader;
-    robot_model::RobotModelPtr m_robot_model;
-    robot_state::RobotStatePtr m_robot_state;
-    planning_scene::PlanningScenePtr m_planning_scene;
+    robot_model_loader::RobotModelLoaderPtr robot_model_loader_;
+    robot_model::RobotModelPtr robot_model_;
+    robot_state::RobotStatePtr robot_state_;
+    planning_scene::PlanningScenePtr planning_scene_;
 
-    moveit_msgs::PlanningScene m_current_scene;
-    moveit_msgs::RobotState m_current_state;
-    geometry_msgs::Pose m_current_pose;
+    moveit_msgs::PlanningScene current_scene_;
+    moveit_msgs::RobotState current_state_;
+    geometry_msgs::Pose current_pose_;
 
-    ros::Publisher m_planning_scene_publisher;
-    ros::Publisher m_robot_state_publisher;
+    ros::Publisher planning_scene_publisher_;
+    ros::Publisher robot_state_publisher_;
 
-    ros::Subscriber m_planning_scene_subscriber;
-    ros::Subscriber m_robot_state_subscriber;
-    ros::Subscriber m_robot_pose_subscriber;
+    ros::Subscriber planning_scene_subscriber_;
+    ros::Subscriber robot_state_subscriber_;
+    ros::Subscriber robot_pose_subscriber_;
 
-    ros::NodeHandle m_node_handle;
+    ros::NodeHandle node_handle_;
 
-    std::string m_planning_scene_topic;
-    std::string m_from_marker_topic;
-    std::string m_from_marker_pose_topic;
-    std::string m_to_marker_topic;
+    std::string planning_scene_topic_;
+    std::string from_marker_topic_;
+    std::string from_marker_pose_topic_;
+    std::string to_marker_topic_;
 
-    std::string m_query_file_location;
+    std::string query_file_location_;
 
-    bool m_scene_initialized;
+    bool is_scene_initialized_;
 
-    size_t m_query_num;
-    std::vector<std::string> m_query_position_names;
-    std::vector<std::string> m_query_6dofpose_names;
-    std::vector<moveit_msgs::RobotState> m_query_positions;
-    std::vector<geometry_msgs::Pose> m_query_6dofposes;
+    size_t query_num_;
+    std::vector<std::string> query_position_names_;
+    std::vector<std::string> query_6dofpose_names_;
+    std::vector<moveit_msgs::RobotState> query_positions_;
+    std::vector<geometry_msgs::Pose> query_6dofposes_;
 };
 
 #endif

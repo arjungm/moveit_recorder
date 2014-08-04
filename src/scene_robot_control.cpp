@@ -47,66 +47,66 @@ SceneRobotControl::SceneRobotControl(ros::NodeHandle nh,
     const std::string& from_marker_pose_topic,
     const std::string& to_marker_topic,
     const std::string& query_save_location)
-: m_node_handle(nh), 
-  m_scene_initialized(false), 
-  m_planning_scene_topic(planning_scene_topic),
-  m_from_marker_topic(from_marker_topic),
-  m_from_marker_pose_topic(from_marker_pose_topic),
-  m_to_marker_topic(to_marker_topic),
-  m_query_num(0),
-  m_query_file_location(query_save_location)
+: node_handle_(nh), 
+  is_scene_initialized_(false), 
+  planning_scene_topic_(planning_scene_topic),
+  from_marker_topic_(from_marker_topic),
+  from_marker_pose_topic_(from_marker_pose_topic),
+  to_marker_topic_(to_marker_topic),
+  query_num_(0),
+  query_file_location_(query_save_location)
 {
   // publishers
-  m_planning_scene_publisher = m_node_handle.advertise<moveit_msgs::PlanningScene>(m_planning_scene_topic,1);
-  m_robot_state_publisher =  m_node_handle.advertise<moveit_msgs::RobotState>(m_to_marker_topic, 1);
+  planning_scene_publisher_ = node_handle_.advertise<moveit_msgs::PlanningScene>(planning_scene_topic_,1);
+  robot_state_publisher_ =  node_handle_.advertise<moveit_msgs::RobotState>(to_marker_topic_, 1);
 
   // subscribers
-  m_planning_scene_subscriber = m_node_handle.subscribe(m_planning_scene_topic, 1,
+  planning_scene_subscriber_ = node_handle_.subscribe(planning_scene_topic_, 1,
       &SceneRobotControl::planningSceneCallback, this);
-  m_robot_state_subscriber = m_node_handle.subscribe(m_from_marker_topic, 1,
+  robot_state_subscriber_ = node_handle_.subscribe(from_marker_topic_, 1,
       &SceneRobotControl::markerRobotStateCallback, this);
-  m_robot_pose_subscriber = m_node_handle.subscribe(m_from_marker_pose_topic, 1,
+  robot_pose_subscriber_ = node_handle_.subscribe(from_marker_pose_topic_, 1,
       &SceneRobotControl::markerRobotPoseCallback, this);
 
   // collision checking
-  m_robot_model_loader.reset(new robot_model_loader::RobotModelLoader("robot_description")); // TODO is param?
-  m_robot_model = m_robot_model_loader->getModel();
-  m_robot_state.reset(new robot_state::RobotState(m_robot_model));
-  m_planning_scene = boost::make_shared<planning_scene::PlanningScene>(m_robot_model);
+  robot_model_loader_.reset(new robot_model_loader::RobotModelLoader("robot_description")); // TODO is param?
+  robot_model_ = robot_model_loader_->getModel();
+  robot_state_.reset(new robot_state::RobotState(robot_model_));
+  planning_scene_ = boost::make_shared<planning_scene::PlanningScene>(robot_model_);
 }
 
 SceneRobotControl::~SceneRobotControl()
 {
-  m_planning_scene.reset();
-  m_robot_state.reset();
-  m_robot_model.reset();
+  planning_scene_.reset();
+  robot_state_.reset();
+  robot_model_.reset();
 }
 
 void SceneRobotControl::markerRobotPoseCallback(const boost::shared_ptr<geometry_msgs::Pose const>& msg)
 {
-  m_current_pose = *msg;
+  current_pose_ = *msg;
 }
 
 void SceneRobotControl::planningSceneCallback(const boost::shared_ptr<moveit_msgs::PlanningScene const>& msg)
 {
-  if(!m_scene_initialized)
+  if(!is_scene_initialized_)
   {
-    m_planning_scene->usePlanningSceneMsg(*msg);
-    m_current_scene = *msg;
-    m_current_state = msg->robot_state;
-    m_scene_initialized = true;
-    m_planning_scene_publisher.publish(m_current_scene); // to rviz & move group
-    m_robot_state_publisher.publish(m_current_state); // to interactive robot
-    m_query_num = 0;
+    planning_scene_->usePlanningSceneMsg(*msg);
+    current_scene_ = *msg;
+    current_state_ = msg->robot_state;
+    is_scene_initialized_ = true;
+    planning_scene_publisher_.publish(current_scene_); // to rviz & move group
+    robot_state_publisher_.publish(current_state_); // to interactive robot
+    query_num_ = 0;
   }
 }
 
 void SceneRobotControl::markerRobotStateCallback(const boost::shared_ptr<moveit_msgs::RobotState const>& msg)
 {
-  m_current_state = *msg;
-  m_current_scene.robot_state = *msg;
-  robot_state::robotStateMsgToRobotState(*msg, *m_robot_state);
-  m_planning_scene_publisher.publish(m_current_scene); // to rviz & move group
+  current_state_ = *msg;
+  current_scene_.robot_state = *msg;
+  robot_state::robotStateMsgToRobotState(*msg, *robot_state_);
+  planning_scene_publisher_.publish(current_scene_); // to rviz & move group
 }
 
 void SceneRobotControl::writePositionsToFile(const std::string& filepath, 
@@ -173,25 +173,25 @@ void SceneRobotControl::getControlMessage(int dir)
     case 'o':
     {
       ROS_INFO("[Output]");
-      for(int i=0; i<m_current_state.joint_state.name.size();++i)
-        ROS_INFO("[%35s] %6.2f", m_current_state.joint_state.name[i].c_str(), 
-                                m_current_state.joint_state.position[i]);
+      for(int i=0; i<current_state_.joint_state.name.size();++i)
+        ROS_INFO("[%35s] %6.2f", current_state_.joint_state.name[i].c_str(), 
+                                current_state_.joint_state.position[i]);
 
       double roll, pitch, yaw;
-      getRPY(m_current_state.multi_dof_joint_state.transforms[0], roll, pitch, yaw);
+      getRPY(current_state_.multi_dof_joint_state.transforms[0], roll, pitch, yaw);
       ROS_INFO("x:%4.2f y:%4.2f z:%4.2f r:%4.2f p:%4.2f y:%4.2f",
-          m_current_state.multi_dof_joint_state.transforms[0].translation.x,
-          m_current_state.multi_dof_joint_state.transforms[0].translation.y,
-          m_current_state.multi_dof_joint_state.transforms[0].translation.z,
+          current_state_.multi_dof_joint_state.transforms[0].translation.x,
+          current_state_.multi_dof_joint_state.transforms[0].translation.y,
+          current_state_.multi_dof_joint_state.transforms[0].translation.z,
           roll,
           pitch,
           yaw);
 
-      getRPY(m_current_pose, roll, pitch, yaw);
+      getRPY(current_pose_, roll, pitch, yaw);
       ROS_INFO("x:%4.2f y:%4.2f z:%4.2f r:%4.2f p:%4.2f y:%4.2f",
-                m_current_pose.position.x,
-                m_current_pose.position.y,
-                m_current_pose.position.z,
+                current_pose_.position.x,
+                current_pose_.position.y,
+                current_pose_.position.z,
                 roll,
                 pitch,
                 yaw);
@@ -199,23 +199,23 @@ void SceneRobotControl::getControlMessage(int dir)
     }
     case 's':
     {
-      ROS_INFO("[Save] %d joint positions and Pose saved so far", (int)(2*(++m_query_num)));
+      ROS_INFO("[Save] %d joint positions and Pose saved so far", (int)(2*(++query_num_)));
 
       std::stringstream start_prefix_ss;
-      start_prefix_ss << m_current_scene.name;
+      start_prefix_ss << current_scene_.name;
       start_prefix_ss << ".start.";
-      start_prefix_ss << m_query_num;
-      m_query_position_names.push_back( start_prefix_ss.str() );
+      start_prefix_ss << query_num_;
+      query_position_names_.push_back( start_prefix_ss.str() );
       
-      m_query_positions.push_back(m_current_state);
+      query_positions_.push_back(current_state_);
       
       std::stringstream goal_prefix_ss;
-      goal_prefix_ss << m_current_scene.name;
+      goal_prefix_ss << current_scene_.name;
       goal_prefix_ss << ".goal.";
-      goal_prefix_ss << m_query_num;
-      m_query_6dofpose_names.push_back( goal_prefix_ss.str() );
+      goal_prefix_ss << query_num_;
+      query_6dofpose_names_.push_back( goal_prefix_ss.str() );
 
-      m_query_6dofposes.push_back(m_current_pose);
+      query_6dofposes_.push_back(current_pose_);
 
       break;
     }
@@ -224,7 +224,7 @@ void SceneRobotControl::getControlMessage(int dir)
       ROS_INFO("[Collision] Checking for collisions on the whole robot");
       collision_detection::CollisionRequest req; req.contacts=true;
       collision_detection::CollisionResult res;
-      m_planning_scene->checkCollision(req, res, *m_robot_state, m_planning_scene->getAllowedCollisionMatrix());
+      planning_scene_->checkCollision(req, res, *robot_state_, planning_scene_->getAllowedCollisionMatrix());
       if(res.collision)
       {
         collision_detection::CollisionResult::ContactMap::iterator collision_pair = res.contacts.begin();
@@ -239,20 +239,20 @@ void SceneRobotControl::getControlMessage(int dir)
     }
     case 'w':
     {
-      boost::filesystem::path query_filepath( m_query_file_location );
-      query_filepath = query_filepath / m_current_scene.name;
+      boost::filesystem::path query_filepath( query_file_location_ );
+      query_filepath = query_filepath / current_scene_.name;
       std::string query_file = query_filepath.string() + ".queries";
       ROS_INFO("[Write] Writing queries to file: %s", query_file.c_str());
       
       // write out to file the query locations (this saves the joint positions and poses for planning)
-      writePositionsToFile( query_file, m_current_scene.name, m_query_position_names, m_query_positions);
-      writePosesToFile(     query_file, m_current_scene.name, m_query_6dofpose_names, m_query_6dofposes);
+      writePositionsToFile( query_file, current_scene_.name, query_position_names_, query_positions_);
+      writePosesToFile(     query_file, current_scene_.name, query_6dofpose_names_, query_6dofposes_);
       break;
     }
     case 'r':
     {
       ROS_INFO("[Reset] Scene is reset");
-      m_scene_initialized = false;
+      is_scene_initialized_ = false;
       break;
     }
     case 'x':
@@ -269,7 +269,7 @@ void SceneRobotControl::getControlMessage(int dir)
 
 bool SceneRobotControl::isSceneInitialized() 
 { 
-  return m_scene_initialized; 
+  return is_scene_initialized_; 
 }
 
 void SceneRobotControl::waitForScene()
@@ -278,7 +278,7 @@ void SceneRobotControl::waitForScene()
   while(!isSceneInitialized())
   {
     ros::spinOnce();
-    ROS_WARN("[Designer] No scene set, use MoveIt plugin or publish to \"%s\"", m_planning_scene_topic.c_str());
+    ROS_WARN("[Designer] No scene set, use MoveIt plugin or publish to \"%s\"", planning_scene_topic_.c_str());
     sleep_t.sleep();
   }
 }
