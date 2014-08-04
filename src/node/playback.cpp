@@ -192,7 +192,8 @@ int main(int argc, char** argv)
           boost::filesystem::path filepath = storage_dir / filename;
 
           // fix topic name
-          std::string topicname = filepath.string();
+          std::string topicname = filename.string();
+          std::replace(topicname.begin(), topicname.end(), '/','_');
           std::replace(topicname.begin(), topicname.end(), '-','_');
           std::replace(topicname.begin(), topicname.end(), ' ','_');
           std::replace(topicname.begin(), topicname.end(), ':','_');
@@ -230,12 +231,12 @@ int main(int argc, char** argv)
             // same filename, counter for viewpoint
             std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
             std::string video_file = filepath.string()+ext;
-            
             req.filepath = video_file;
+            std::string topicview = "view"+boost::lexical_cast<std::string>(view_counter);
 
             // save to bag
             std_msgs::String filemsg; filemsg.data = req.filepath;
-            bag.write<std_msgs::String>( (boost::filesystem::path("/vid")/topicname).string(), 
+            bag.write<std_msgs::String>( ((boost::filesystem::path("/vid")/topicname)/topicview).string(), 
                                           ros::Time::now(), filemsg);
            
             recorder.record(req);
