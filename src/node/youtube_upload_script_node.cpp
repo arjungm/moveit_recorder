@@ -37,8 +37,6 @@
 #include <iomanip>
 #include <iostream>
 
-#include <set>
-
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/query.h>
@@ -68,7 +66,7 @@ bool isYouTubeLink(const std::string& str)
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "playback");
+  ros::init(argc, argv, "uploader_node");
   ros::NodeHandle node_handle;  
   ros::AsyncSpinner spinner(1);
   spinner.start();
@@ -148,6 +146,7 @@ int main(int argc, char** argv)
         // check if a youtube link
         if( isYouTubeLink( response_str ) )
         {
+          response_str.erase(std::remove(response_str.begin(), response_str.end(), '\n'), response_str.end());
           // if yes, save to bag under /url/videoname/viewname
           ROS_INFO("Uploaded to %s", response_str.c_str());
           boost::filesystem::path url_topic("/url");
