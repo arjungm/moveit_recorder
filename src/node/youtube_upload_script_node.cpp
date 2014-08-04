@@ -99,6 +99,7 @@ int main(int argc, char** argv)
 
     boost::filesystem::path save_directory(save_dir);
     boost::filesystem::path video_bagfile = save_directory / "video_lookup.bag";
+    boost::filesystem::path youtube_bagfile = save_directory / "url_lookup.bag";
 
 
     // read the bag file to get the file names
@@ -109,6 +110,8 @@ int main(int argc, char** argv)
 
     rosbag::View view_all(bag);
     size_t count = 0; 
+    std::vector<std::string> list_of_vids;
+    std::vector<std::string> list_of_urls;
 
     std::vector<const rosbag::ConnectionInfo *> connection_infos = view_all.getConnections();
     std::vector<std::string> topics;
@@ -135,18 +138,22 @@ int main(int argc, char** argv)
         std::string uploader_command = "youtube-upload "+username+" "+password+" "+title+" "+category+" ";
         std::string upload_command = uploader_command + video_filepath.string();
 
-        char buffer[255];
+        char* buffer= new char[255];
         FILE *stream = popen(upload_command.c_str(),"r");
         while ( fgets(buffer, 255, stream) != NULL ) { }
         pclose(stream);
-
         std::string response_str(buffer);
+        delete buffer;
 
         // check if a youtube link
         if( isYouTubeLink( response_str ) )
         {
           // if yes, save to bag under /url/videoname/viewname
           ROS_INFO("Uploaded to %s", response_str.c_str());
+          boost::filesystem::path url_topic("/url");
+          url_topic =  (url_topic / video_name) / view_name;
+          list_of_vids.push_back(url_topic.string());
+          list_of_urls.push_back(response_str);
         }
         else
         {
@@ -159,6 +166,16 @@ int main(int argc, char** argv)
     }
     ROS_INFO("Uploaded %d videos in %f seconds", (int)count, 0);
     bag.close();
+
+    rosbag::Bag writeBag;
+    writeBag.open(youtube_bagfile.string(), rosbag::bagmode::Write);
+    for(int i=0; i<list_of_urls.size(); ++i)
+    {
+      std_msgs::String url_msg;
+      url_msg.data = list_of_urls[i];
+      writeBag.write<std_msgs::String>( list_of_vids[i], ros::Time::now(), url_msg );
+    }
+    writeBag.close();
   }
   catch(...)
   {
