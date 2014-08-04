@@ -52,6 +52,20 @@
 
 using namespace std;
 
+bool isYouTubeLink(const std::string& str)
+{
+  if(str.length() < 22)
+    return false;
+  else
+  {
+    std::string head = str.substr(0,22);
+    if(head=="http://www.youtube.com")
+      return true;
+    else
+      return false;
+  }
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "playback");
@@ -80,12 +94,12 @@ int main(int argc, char** argv)
   {
     std::string username = "--email="+utils::get_option(vm, "user", "");
     std::string password = "--password="+utils::get_option(vm, "pass", "");
+    std::string category = "--category=Tech";
     std::string save_dir = utils::get_option(vm, "save_dir", "");
 
     boost::filesystem::path save_directory(save_dir);
     boost::filesystem::path video_bagfile = save_directory / "video_lookup.bag";
 
-    std::string uploader_command = "youtube-upload "+username+" "+password+" ";
 
     // read the bag file to get the file names
     ROS_INFO("Opening bag at %s", video_bagfile.string().c_str());
@@ -99,40 +113,51 @@ int main(int argc, char** argv)
     std::vector<const rosbag::ConnectionInfo *> connection_infos = view_all.getConnections();
     std::vector<std::string> topics;
     
-    BOOST_FOREACH(const rosbag::ConnectionInfo *info, connection_infos) 
+    BOOST_FOREACH(const rosbag::ConnectionInfo *info, connection_infos)
+    {
         topics.push_back(info->topic);
-    std::cout << topics.size() << " topics in bag" << std::endl;
-    
+    }
     rosbag::View view_topics(bag, rosbag::TopicQuery(topics));
-
+    
     for( rosbag::View::iterator it=view_topics.begin(); it!=view_topics.end(); ++it)
     {
-      std::cout << it->getDataType() << std::endl;
       std_msgs::String::Ptr strmsg = it->instantiate<std_msgs::String>();
       if(strmsg!=NULL)
-        std::cout << "Have message!" << std::endl;
-      count++;
-    }
-    std::cout << count << " messages in the bag" << std::endl;
-    bag.close();
-    /*
-    BOOST_FOREACH(rosbag::MessageInstance const m, view_all)
-    {
-      std_msgs::String::ConstPtr strmsg = m.instantiate<std_msgs::String>();
-      ROS_INFO("Uploading: %s", strmsg->data.c_str());
-      if (strmsg != NULL)
       {
-        std::string upload_command = "echo cat";//uploader_command + i->data;
-        // run the command and save output to file back to bag
+        boost::filesystem::path full_topic_name( it->getTopic() );
+        boost::filesystem::path video_filepath(strmsg->data);
+        std::string video_name = full_topic_name.parent_path().filename().string();
+        std::string view_name = full_topic_name.filename().string();
+
+        std::string title = "--title="+video_name+view_name;
+        ROS_INFO("Video Title: %s", title.c_str());
+
+        std::string uploader_command = "youtube-upload "+username+" "+password+" "+title+" "+category+" ";
+        std::string upload_command = uploader_command + video_filepath.string();
+
         char buffer[255];
         FILE *stream = popen(upload_command.c_str(),"r");
-        while ( fgets(buffer, 255, stream) != NULL )
-          ROS_INFO("Buffer: %s", buffer);
+        while ( fgets(buffer, 255, stream) != NULL ) { }
         pclose(stream);
-        return 0;
+
+        std::string response_str(buffer);
+
+        // check if a youtube link
+        if( isYouTubeLink( response_str ) )
+        {
+          // if yes, save to bag under /url/videoname/viewname
+          ROS_INFO("Uploaded to %s", response_str.c_str());
+        }
+        else
+        {
+          // if no, retry
+          ROS_WARN("Failed to upload the video. No URL detected.");
+        }
+        count++;
+        sleep(2);
       }
     }
-    */
+    ROS_INFO("Uploaded %d videos in %f seconds", (int)count, 0);
     bag.close();
   }
   catch(...)
