@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -105,6 +105,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
 
 ## Declare a cpp library
 add_library(moveit_recorder_lib src/trajectory_retimer.cpp
@@ -114,7 +115,7 @@ add_library(moveit_recorder_lib src/trajectory_retimer.cpp
                                 src/interactive_robot.cpp
                                 src/pose_string.cpp
                                 src/animation_recorder.cpp) 
-target_link_libraries(moveit_recorder_lib  ${catkin_LIBRARIES})
+target_link_libraries(moveit_recorder_lib ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(playback_node src/node/playback.cpp)
@@ -132,6 +133,9 @@ target_link_libraries(markers_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 add_executable(uploader_node src/node/youtube_upload_script_node.cpp)
 target_link_libraries(uploader_node moveit_recorder_lib ${catkin_LIBRARIES})
+
+add_executable(experiment_node src/node/youtube_url_to_experiment_creator.cpp)
+target_link_libraries(experiment_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
