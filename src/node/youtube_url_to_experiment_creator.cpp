@@ -59,6 +59,16 @@ std::string getTrajectoryName(const std::string& trajectory_topic)
   return traj_topic_as_path.parent_path().filename().string();
 }
 
+std::string getYoutubeVideoID(std::string url)
+{
+  return url.erase(0, url.find_first_of('=')+1);
+}
+
+std::string getYoutubeEmbedURL(const std::string& url)
+{
+  return "//www.youtube.com/embed/"+getYoutubeVideoID(url);
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "youtube_url_to_experiment_creator");
@@ -123,14 +133,14 @@ int main(int argc, char** argv)
         if(got!=traj_video_map.end())
         {
           // add url to list of urls for this traj
-          got->second.push_back( str );
+          got->second.push_back( getYoutubeEmbedURL(str) );
           min_num_tags = got->second.size() > min_num_tags ? got->second.size() : min_num_tags;
         }
         else
         {
           // if traj, create new url list
           std::vector<std::string> list_of_urls;
-          list_of_urls.push_back( str );
+          list_of_urls.push_back( getYoutubeEmbedURL(str) );
           traj_video_map.insert( std::make_pair<std::string, 
                                                 std::vector<std::string> >
                                                 (trajectory_name, list_of_urls) );
