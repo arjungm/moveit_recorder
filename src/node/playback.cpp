@@ -202,7 +202,8 @@ int main(int argc, char** argv)
           // topics for videos are /ps/xxxx/ for the planning scene
           //                       /mpr/xxxx/ for the motion plan request
           //                       /rt/xxxx/ for the robot trajectory
-          //                       /vid/xxxx/ for the videos
+          //                       /vid/xxxx/viewx for the videos
+          //                       /vid/xxxx/split for a split screen version
           rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Append);
           bag.write<moveit_msgs::PlanningScene>( (boost::filesystem::path("/ps")/topicname).string(), 
                                                   ros::Time::now(), ps_msg);
@@ -217,7 +218,7 @@ int main(int argc, char** argv)
           {
             AnimationRequest req;
             
-            view_msg->time_from_start = ros::Duration(0.1);
+            view_msg->time_from_start = ros::Duration(0.001);
             ros::Time t_now = ros::Time::now();
             view_msg->eye.header.stamp = t_now;
             view_msg->focus.header.stamp = t_now;
