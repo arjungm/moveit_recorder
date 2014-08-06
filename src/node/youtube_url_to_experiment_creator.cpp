@@ -48,26 +48,9 @@
 #include <boost/filesystem.hpp>
 
 #include "moveit_recorder/utils.h"
+#include "moveit_recorder/experiment_utils.h"
 
 using namespace std;
-
-typedef std::map<std::string, std::vector<std::string> > TrajToVideoMap;
-
-std::string getTrajectoryName(const std::string& trajectory_topic)
-{
-  boost::filesystem::path traj_topic_as_path(trajectory_topic);
-  return traj_topic_as_path.parent_path().filename().string();
-}
-
-std::string getYoutubeVideoID(std::string url)
-{
-  return url.erase(0, url.find_first_of('=')+1);
-}
-
-std::string getYoutubeEmbedURL(const std::string& url)
-{
-  return "//www.youtube.com/embed/"+getYoutubeVideoID(url);
-}
 
 int main(int argc, char** argv)
 {
@@ -98,7 +81,7 @@ int main(int argc, char** argv)
     boost::filesystem::path youtube_bagfile = save_directory / "url_lookup.bag";
     boost::filesystem::path experiment_file = save_directory / "experiment.csv";
 
-    TrajToVideoMap traj_video_map;
+    utils::rosbag::TrajToVideoMap traj_video_map;
 
     // read the bag file to get the file names
     ROS_INFO("Opening bag at %s", youtube_bagfile.string().c_str());
@@ -123,8 +106,8 @@ int main(int argc, char** argv)
       std_msgs::String::Ptr strmsg = it->instantiate<std_msgs::String>();
       if(strmsg!=NULL)
       {
-        std::string trajectory_name = getTrajectoryName(it->getTopic());
-        TrajToVideoMap::iterator got = traj_video_map.find(trajectory_name);
+        std::string trajectory_name = utils::rosbag::getTrajectoryName(it->getTopic());
+        utils::rosbag::TrajToVideoMap::iterator got = traj_video_map.find(trajectory_name);
         
         // has newlines ... need to catch this earlier
         std::string str = strmsg->data;
@@ -133,14 +116,14 @@ int main(int argc, char** argv)
         if(got!=traj_video_map.end())
         {
           // add url to list of urls for this traj
-          got->second.push_back( getYoutubeEmbedURL(str) );
+          got->second.push_back( utils::youtube::getYoutubeEmbedURL(str) );
           min_num_tags = got->second.size() > min_num_tags ? got->second.size() : min_num_tags;
         }
         else
         {
           // if traj, create new url list
           std::vector<std::string> list_of_urls;
-          list_of_urls.push_back( getYoutubeEmbedURL(str) );
+          list_of_urls.push_back( utils::youtube::getYoutubeEmbedURL(str) );
           traj_video_map.insert( std::make_pair<std::string, 
                                                 std::vector<std::string> >
                                                 (trajectory_name, list_of_urls) );
@@ -163,7 +146,7 @@ int main(int argc, char** argv)
       file << ((i+1) < min_num_tags?",":"\n");
     }
 
-    TrajToVideoMap::iterator it;
+    utils::rosbag::TrajToVideoMap::iterator it;
     for( it=traj_video_map.begin(); it!=traj_video_map.end(); ++it)
     {
       assert( it->second.size() <= min_num_tags);

@@ -34,9 +34,6 @@
 
 /* Author: Arjun Menon */
 
-#include <iomanip>
-#include <iostream>
-
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/query.h>
@@ -47,22 +44,9 @@
 #include <boost/filesystem.hpp>
 
 #include "moveit_recorder/utils.h"
+#include "moveit_recorder/experiment_utils.h"
 
 using namespace std;
-
-bool isYouTubeLink(const std::string& str)
-{
-  if(str.length() < 22)
-    return false;
-  else
-  {
-    std::string head = str.substr(0,22);
-    if(head=="http://www.youtube.com")
-      return true;
-    else
-      return false;
-  }
-}
 
 int main(int argc, char** argv)
 {
@@ -115,9 +99,7 @@ int main(int argc, char** argv)
     std::vector<std::string> topics;
     
     BOOST_FOREACH(const rosbag::ConnectionInfo *info, connection_infos)
-    {
-        topics.push_back(info->topic);
-    }
+      topics.push_back(info->topic);
     rosbag::View view_topics(bag, rosbag::TopicQuery(topics));
     
     for( rosbag::View::iterator it=view_topics.begin(); it!=view_topics.end(); ++it)
@@ -135,16 +117,12 @@ int main(int argc, char** argv)
 
         std::string uploader_command = "youtube-upload "+username+" "+password+" "+title+" "+category+" ";
         std::string upload_command = uploader_command + video_filepath.string();
-
-        char* buffer= new char[255];
-        FILE *stream = popen(upload_command.c_str(),"r");
-        while ( fgets(buffer, 255, stream) != NULL ) { }
-        pclose(stream);
-        std::string response_str(buffer);
-        delete buffer;
+        
+        // run the upload
+        std::string response_str = utils::system::runCommand( upload_command );
 
         // check if a youtube link
-        if( isYouTubeLink( response_str ) )
+        if( utils::youtube::isYouTubeLink( response_str ) )
         {
           response_str.erase(std::remove(response_str.begin(), response_str.end(), '\n'), response_str.end());
           // if yes, save to bag under /url/videoname/viewname
