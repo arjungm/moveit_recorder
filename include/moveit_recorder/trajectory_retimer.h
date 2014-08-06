@@ -62,11 +62,11 @@ class TrajectoryRetimer
   private:
     std::string m_group_name;
 
-    planning_scene_monitor::PlanningSceneMonitor m_psm;
-    planning_scene::PlanningScenePtr m_ps;
-    robot_trajectory::RobotTrajectoryPtr m_rt;
-    moveit::core::RobotStatePtr m_reference_state;
+    planning_scene_monitor::PlanningSceneMonitor psm_;
+    planning_scene::PlanningScenePtr ps_;
+    robot_trajectory::RobotTrajectoryPtr rt_;
+    moveit::core::RobotStatePtr reference_state_;
 
-    trajectory_processing::IterativeParabolicTimeParameterization m_traj_retimer;
+    trajectory_processing::IterativeParabolicTimeParameterization traj_retimer_;
 };
 #endif
