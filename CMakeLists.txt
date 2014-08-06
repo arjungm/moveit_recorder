@@ -114,7 +114,8 @@ add_library(moveit_recorder_lib src/trajectory_retimer.cpp
                                 src/interactive_robot_marker.cpp
                                 src/interactive_robot.cpp
                                 src/pose_string.cpp
-                                src/animation_recorder.cpp) 
+                                src/animation_recorder.cpp
+                                src/experiment_utils.cpp) 
 target_link_libraries(moveit_recorder_lib ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 ## Declare a cpp executable
