@@ -39,12 +39,16 @@
 #include <rosbag/query.h>
 #include <rosbag/view.h>
 #include <std_msgs/String.h>
+
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
+#include <boost/regex.hpp>
 
 #include "moveit_recorder/utils.h"
 #include "moveit_recorder/experiment_utils.h"
+#include "moveit_recorder/trajectory_video_lookup.h"
 
 using namespace std;
 
@@ -74,85 +78,64 @@ int main(int argc, char** argv)
 
   try
   {
-    std::string username = "--email="+utils::get_option(vm, "user", "");
-    std::string password = "--password="+utils::get_option(vm, "pass", "");
-    std::string category = "--category=Tech";
+    std::string username_flag = boost::str(boost::format("--%s=%s") % "email" % utils::get_option(vm, "user", "").c_str());
+    std::string password_flag = boost::str(boost::format("--%s=%s") % "password" % utils::get_option(vm, "pass", "").c_str());
+    std::string category_flag = "--category=Tech";
     std::string save_dir = utils::get_option(vm, "save_dir", "");
 
     boost::filesystem::path save_directory(save_dir);
-    boost::filesystem::path video_bagfile = save_directory / "video_lookup.bag";
-    boost::filesystem::path youtube_bagfile = save_directory / "url_lookup.bag";
 
-
+    TrajectoryVideoLookup video_lookup_table;
+    video_lookup_table.loadFromBag( save_directory.string() );
     // read the bag file to get the file names
-    ROS_INFO("Opening bag at %s", video_bagfile.string().c_str());
+    ROS_INFO("Opening bag at %s", save_directory.string().c_str());
 
-    rosbag::Bag bag;
-    bag.open(video_bagfile.string(), rosbag::bagmode::Read);
-
-    rosbag::View view_all(bag);
-    size_t count = 0; 
-    std::vector<std::string> list_of_vids;
-    std::vector<std::string> list_of_urls;
-
-    std::vector<const rosbag::ConnectionInfo *> connection_infos = view_all.getConnections();
-    std::vector<std::string> topics;
-    
-    BOOST_FOREACH(const rosbag::ConnectionInfo *info, connection_infos)
-      topics.push_back(info->topic);
-    rosbag::View view_topics(bag, rosbag::TopicQuery(topics));
-    
-    for( rosbag::View::iterator it=view_topics.begin(); it!=view_topics.end(); ++it)
+    // iterate over the table and upload the named videos
+    boost::regex vid_regex( "view." );
+    TrajectoryVideoLookup::iterator trajectory_it = video_lookup_table.begin();
+    for( ; trajectory_it!=video_lookup_table.end(); ++trajectory_it)
     {
-      std_msgs::String::Ptr strmsg = it->instantiate<std_msgs::String>();
-      if(strmsg!=NULL)
+      std::string traj_id = trajectory_it->first;
+      // iterate over the videos and match regex for name
+      TrajectoryVideoLookupEntry::iterator video_it = trajectory_it->second.begin();
+      for( ; video_it!=trajectory_it->second.end(); ++video_it )
       {
-        boost::filesystem::path full_topic_name( it->getTopic() );
-        boost::filesystem::path video_filepath(strmsg->data);
-        std::string video_name = full_topic_name.parent_path().filename().string();
-        std::string view_name = full_topic_name.filename().string();
-
-        std::string title = "--title="+video_name+view_name;
-        ROS_INFO("Video Title: %s", title.c_str());
-
-        std::string uploader_command = "youtube-upload "+username+" "+password+" "+title+" "+category+" ";
-        std::string upload_command = uploader_command + video_filepath.string();
-        
-        // run the upload
-        std::string response_str = utils::system::runCommand( upload_command );
-
-        // check if a youtube link
-        if( utils::youtube::isYouTubeLink( response_str ) )
+        //match regex
+          // if yes upload,
+            // if success save URL back
+            // else retry
+        boost::cmatch matches;
+        if(boost::regex_match( video_it->name.c_str(), matches, vid_regex ))
         {
-          response_str.erase(std::remove(response_str.begin(), response_str.end(), '\n'), response_str.end());
+          ROS_INFO("Matched video to view \"%s\" for trajectory \"%s\"", video_it->name.c_str(), traj_id.c_str() );
+          std::string title_name = boost::str(boost::format("%s %s") % video_it->name % traj_id);
+          std::string title_flag = boost::str(boost::format("--%s=\"%s\"") % "title" % title_name);
+
+          std::string upload_command = boost::str(
+                                       boost::format("%s %s %s %s %s %s")
+                                       % "youtube-upload"
+                                       % username_flag
+                                       % password_flag
+                                       % category_flag
+                                       % title_flag
+                                       % video_it->file);
+
+          std::string response_str = utils::system::runCommand( upload_command );
+          
+          // check if a youtube link
+          while( !utils::youtube::isYouTubeLink( response_str ) )
+          {
+            ROS_WARN("Failed to upload. Retrying...");
+            response_str = utils::system::runCommand( upload_command );
+          }
           // if yes, save to bag under /url/videoname/viewname
+          response_str.erase(std::remove(response_str.begin(), response_str.end(), '\n'), response_str.end());
           ROS_INFO("Uploaded to %s", response_str.c_str());
-          boost::filesystem::path url_topic("/url");
-          url_topic =  (url_topic / video_name) / view_name;
-          list_of_vids.push_back(url_topic.string());
-          list_of_urls.push_back(response_str);
+          video_it->url = response_str;
         }
-        else
-        {
-          // if no, retry
-          ROS_WARN("Failed to upload the video. No URL detected.");
-        }
-        count++;
-        sleep(2);
       }
     }
-    ROS_INFO("Uploaded %d videos in %f seconds", (int)count, 0);
-    bag.close();
-
-    rosbag::Bag writeBag;
-    writeBag.open(youtube_bagfile.string(), rosbag::bagmode::Write);
-    for(int i=0; i<list_of_urls.size(); ++i)
-    {
-      std_msgs::String url_msg;
-      url_msg.data = list_of_urls[i];
-      writeBag.write<std_msgs::String>( list_of_vids[i], ros::Time::now(), url_msg );
-    }
-    writeBag.close();
+    video_lookup_table.saveToBag( save_directory.string() );
   }
   catch(...)
   {
