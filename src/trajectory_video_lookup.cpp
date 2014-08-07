@@ -1,7 +1,58 @@
 #include <ros/ros.h>
+#include <algorithm>
 #include <moveit_recorder/trajectory_video_lookup.h>
 
 namespace boostfs = boost::filesystem;
+
+void TrajectoryVideoLookupEntry::addVideoFile(const std::string& name, const std::string& file)
+{
+  TrajectoryVideoLookupEntry::iterator iter = begin();
+  for( ;iter!=end();++iter)
+  {
+    if(name==iter->name)
+    {
+      iter->file = file;
+      return;
+    }
+  }
+  if(iter==end())
+  {
+    TrajectoryVideoEntry entry;
+    entry.name = name;
+    entry.file = file;
+    videos.push_back(entry);
+  }
+}
+
+void TrajectoryVideoLookupEntry::addVideoURL(const std::string& name, const std::string& url)
+{
+  TrajectoryVideoLookupEntry::iterator iter = begin();
+  for( ;iter!=end();++iter)
+  {
+    if(name==iter->name)
+    {
+      iter->url = url;
+      return;
+    }
+  }
+  if(iter==end())
+  {
+    TrajectoryVideoEntry entry;
+    entry.name = name;
+    entry.url = url;
+    videos.push_back(entry);
+  }
+}
+
+TrajectoryVideoLookupEntry::iterator TrajectoryVideoLookupEntry::begin()
+{
+  return videos.begin();
+}
+
+TrajectoryVideoLookupEntry::iterator TrajectoryVideoLookupEntry::end()
+{
+  return videos.end();
+}
 
 TrajectoryVideoLookup::TrajectoryVideoLookup() {}
 TrajectoryVideoLookup::~TrajectoryVideoLookup() {}
@@ -46,29 +97,29 @@ void TrajectoryVideoLookup::put(const std::string& tkey, moveit_msgs::RobotTraje
   entry->second.rt = rt;
 }
 
-void TrajectoryVideoLookup::put(const std::string& tkey, const std::string& vkey, TrajectoryVideoEntry vid)
+void TrajectoryVideoLookup::put(const std::string& tkey, TrajectoryVideoEntry vid)
 {
   TrajectoryHashtable::iterator entry;
   if( !hasEntry(tkey, entry) )
     createEntry(tkey, entry);
-  
-  entry->second.videos[vkey] = vid;
+  entry->second.addVideoFile(vid.name, vid.file);
+  entry->second.addVideoURL(vid.name, vid.url);
 }
 
-void TrajectoryVideoLookup::putVideoFile(const std::string& tkey, const std::string& vkey, std::string file)
+void TrajectoryVideoLookup::putVideoFile(const std::string& tkey, const std::string& vkey, const std::string& file)
 {
   TrajectoryHashtable::iterator entry;
   if( !hasEntry(tkey, entry) )
     createEntry(tkey, entry);
-  entry->second.videos[vkey].file = file;
+  entry->second.addVideoFile(vkey, file);
 }
 
-void TrajectoryVideoLookup::putVideoURL(const std::string& tkey, const std::string& vkey, std::string url)
+void TrajectoryVideoLookup::putVideoURL(const std::string& tkey, const std::string& vkey, const std::string& url)
 {
   TrajectoryHashtable::iterator entry;
   if( !hasEntry(tkey, entry) )
     createEntry(tkey, entry);
-  entry->second.videos[vkey].url = url;
+  entry->second.addVideoURL(vkey, url);
 }
 
 TrajectoryVideoLookupEntry TrajectoryVideoLookup::get(const std::string& tkey)
@@ -87,13 +138,18 @@ moveit_msgs::RobotTrajectory TrajectoryVideoLookup::getRobotTrajectory(const std
 {
   return table_[tkey].rt;
 }
-std::map<std::string, TrajectoryVideoEntry> TrajectoryVideoLookup::getVideos(const std::string& tkey)
+TrajectoryVideoLookupEntry::VideoList TrajectoryVideoLookup::getVideos(const std::string& tkey)
 {
   return table_[tkey].videos;
 }
 TrajectoryVideoEntry TrajectoryVideoLookup::getNamedVideo(const std::string& tkey, const std::string& vkey)
 {
-  return table_[tkey].videos[vkey];
+  TrajectoryVideoLookupEntry::iterator iter = table_[tkey].begin();
+  for( ;iter!=table_[tkey].end();++iter)
+  {
+    if(iter->name == vkey)
+      return *iter;
+  }
 }
 
 void TrajectoryVideoLookup::parseBagFile(rosbag::Bag& bag)
@@ -195,14 +251,14 @@ void TrajectoryVideoLookup::writeBagFile(rosbag::Bag& bag)
     bag.write<moveit_msgs::RobotTrajectory>( (topic/"rt").string() , ros::Time::now(), entry->second.rt);
     
     size_t video_count = 0;
-    TrajectoryVideoLookupEntry::VideoHashtable::iterator video_entry = entry->second.videos.begin();
-    for( ; video_entry!=entry->second.videos.end(); ++video_entry)
+    TrajectoryVideoLookupEntry::iterator video_entry = entry->second.begin();
+    for( ; video_entry!=entry->second.end(); ++video_entry)
     {
       std_msgs::String filemsg, urlmsg;
-      filemsg.data = video_entry->second.file;
-      urlmsg.data = video_entry->second.url;
-      bag.write<std_msgs::String>( (topic/"vid"/video_entry->first).string(), ros::Time::now(), filemsg);
-      bag.write<std_msgs::String>( (topic/"url"/video_entry->first).string(), ros::Time::now(), urlmsg);
+      filemsg.data = video_entry->file;
+      urlmsg.data = video_entry->url;
+      bag.write<std_msgs::String>( (topic/"vid"/video_entry->name).string(), ros::Time::now(), filemsg);
+      bag.write<std_msgs::String>( (topic/"url"/video_entry->name).string(), ros::Time::now(), urlmsg);
       
       video_count++;
     }
