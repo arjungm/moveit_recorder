@@ -2,8 +2,10 @@
 
 #include <iomanip>
 #include <iostream>
-#include <boost/filesystem.hpp>
 #include <cstdio>
+
+#include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
 
 std::string utils::system::runCommand(const std::string& command)
 {
@@ -33,6 +35,7 @@ bool utils::youtube::isYouTubeLink(const std::string& str)
 
 std::string utils::youtube::getYoutubeVideoID(std::string url)
 {
+  //TODO check is valid youtube URL
   return url.erase(0, url.find_first_of('=')+1);
 }
 
@@ -45,12 +48,3 @@ std::string utils::youtube::getYoutubeEmbedURL(const std::string& url)
 void utils::videoproc::createSplitScreenVideo(std::vector<std::string>& video_lists)
 {
 }
-void utils::rosbag::parseBag()
-{
-}
-std::string utils::rosbag::getTrajectoryName(const std::string& trajectory_topic)
-{
-  boost::filesystem::path traj_topic_as_path(trajectory_topic);
-  return traj_topic_as_path.parent_path().filename().string();
-}
-

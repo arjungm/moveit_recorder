@@ -7,6 +7,9 @@
 #include <iostream>
 #include <iomanip>
 
+#include <std_msgs/String.h>
+#include <rosbag/view.h>
+
 namespace utils
 {
   namespace system
@@ -24,13 +27,6 @@ namespace utils
   namespace videoproc
   {
     void createSplitScreenVideo(std::vector<std::string>& video_lists);
-  }
-
-  namespace rosbag
-  {
-    typedef std::map<std::string, std::vector<std::string> > TrajToVideoMap;
-    void parseBag();
-    std::string getTrajectoryName(const std::string& trajectory_topic);
   }
 }
 #endif
