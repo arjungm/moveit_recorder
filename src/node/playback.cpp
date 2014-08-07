@@ -57,6 +57,8 @@
 
 #include <algorithm>
 
+#include "moveit_recorder/trajectory_video_lookup.h"
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "playback");
@@ -100,10 +102,8 @@ int main(int argc, char** argv)
     boost::filesystem::path storage_dir( vm.count("save_dir") ? vm["save_dir"].as<std::string>() : "/tmp" );
     boost::filesystem::create_directories( storage_dir );
 
-    // create bag file to track the associated video to the scene, query, and traj that spawned it
-    boost::filesystem::path bagpath = storage_dir / "video_lookup.bag";
-    rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Write);
-    bag.close();
+    // track associated videos with the plans that created them
+    TrajectoryVideoLookup video_lookup_table;
 
     // load the viewpoints
     std::string bagfilename = vm.count("views") ? vm["views"].as<std::string>() : "";
@@ -180,42 +180,30 @@ int main(int argc, char** argv)
             
           //date and time based filename
           boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-          std::string vid_filename = boost::posix_time::to_simple_string(now);
+          std::string time_as_string = boost::posix_time::to_simple_string(now);
 
-          // fix filename
-          std::replace(vid_filename.begin(), vid_filename.end(), '-','_');
-          std::replace(vid_filename.begin(), vid_filename.end(), ' ','_');
-          std::replace(vid_filename.begin(), vid_filename.end(), ':','_');
-
-
-          boost::filesystem::path filename( vid_filename );
-          boost::filesystem::path filepath = storage_dir / filename;
-
-          // fix topic name
-          std::string topicname = filename.string();
-          std::replace(topicname.begin(), topicname.end(), '/','_');
-          std::replace(topicname.begin(), topicname.end(), '-','_');
-          std::replace(topicname.begin(), topicname.end(), ' ','_');
-          std::replace(topicname.begin(), topicname.end(), ':','_');
+          // create trajectory ID
+          std::string trajectory_id = time_as_string;
+          std::replace(trajectory_id.begin(), trajectory_id.end(), '/','_');
+          std::replace(trajectory_id.begin(), trajectory_id.end(), '-','_');
+          std::replace(trajectory_id.begin(), trajectory_id.end(), ' ','_');
+          std::replace(trajectory_id.begin(), trajectory_id.end(), ':','_');
 
           // save into lookup
-          // topics for videos are /ps/xxxx/ for the planning scene
-          //                       /mpr/xxxx/ for the motion plan request
-          //                       /rt/xxxx/ for the robot trajectory
-          //                       /vid/xxxx/viewx for the videos
-          //                       /vid/xxxx/split for a split screen version
-          rosbag::Bag bag(bagpath.string(), rosbag::bagmode::Append);
-          bag.write<moveit_msgs::PlanningScene>( (boost::filesystem::path("/ps")/topicname).string(), 
-                                                  ros::Time::now(), ps_msg);
-          bag.write<moveit_msgs::MotionPlanRequest>( (boost::filesystem::path("/mpr")/topicname).string(), 
-                                                    ros::Time::now(), mpr_msg);
-          bag.write<moveit_msgs::RobotTrajectory>( (boost::filesystem::path("/rt")/topicname).string(), 
-                                                  ros::Time::now(), rt_msg);
+          video_lookup_table.put( trajectory_id, ps_msg );
+          video_lookup_table.put( trajectory_id, mpr_msg );
+          video_lookup_table.put( trajectory_id, rt_msg );
           
           int view_counter=0;
           std::vector<view_controller_msgs::CameraPlacement>::iterator view_msg;
           for(view_msg=views.begin(); view_msg!=views.end(); ++view_msg)
           {
+            // create filename
+            std::string filename = trajectory_id+boost::lexical_cast<std::string>(view_counter++) + ".ogv";
+            std::string view_id = "view"+boost::lexical_cast<std::string>(view_counter);
+
+            //Animation request data
+
             AnimationRequest req;
             
             view_msg->time_from_start = ros::Duration(0.001);
@@ -228,26 +216,19 @@ int main(int argc, char** argv)
             req.planning_scene = ps_msg;
             req.motion_plan_request = mpr_msg;
             req.robot_trajectory = rt_msg;
+            req.filepath = filename;
             
-            // same filename, counter for viewpoint
-            std::string ext = boost::lexical_cast<std::string>(view_counter++) + ".ogv";
-            std::string video_file = filepath.string()+ext;
-            req.filepath = video_file;
-            std::string topicview = "view"+boost::lexical_cast<std::string>(view_counter);
-
-            // save to bag
-            std_msgs::String filemsg; filemsg.data = req.filepath;
-            bag.write<std_msgs::String>( ((boost::filesystem::path("/vid")/topicname)/topicview).string(), 
-                                          ros::Time::now(), filemsg);
+            video_lookup_table.putVideoFile( trajectory_id, view_id, filename );
            
             recorder.record(req);
             recorder.startCapture();
-            ROS_INFO("RECORDING DONE!");
+            ROS_INFO("Recording Done");
           }//view
-          bag.close();
         }//traj
       }//query
     }//scene
+
+    video_lookup_table.saveToBag( (storage_dir/"video_lookup.bag").string() );
   }
   catch(mongo_ros::DbConnectException &ex)
   {
