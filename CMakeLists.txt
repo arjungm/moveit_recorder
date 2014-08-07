@@ -139,6 +139,9 @@ target_link_libraries(uploader_node moveit_recorder_lib ${catkin_LIBRARIES})
 add_executable(experiment_node src/node/youtube_url_to_experiment_creator.cpp)
 target_link_libraries(experiment_node moveit_recorder_lib ${catkin_LIBRARIES})
 
+add_executable(split_screen_creator_node src/node/split_screen_creator.cpp)
+target_link_libraries(split_screen_creator_node moveit_recorder_lib ${catkin_LIBRARIES})
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(moveit_recorder_node moveit_recorder_generate_messages_cpp)
