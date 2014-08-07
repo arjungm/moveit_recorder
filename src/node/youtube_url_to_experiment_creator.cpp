@@ -43,12 +43,15 @@
 #include <rosbag/query.h>
 #include <rosbag/view.h>
 #include <std_msgs/String.h>
+
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 
 #include "moveit_recorder/utils.h"
 #include "moveit_recorder/experiment_utils.h"
+#include "moveit_recorder/trajectory_video_lookup.h"
 
 using namespace std;
 
@@ -77,67 +80,39 @@ int main(int argc, char** argv)
   try
   {
     std::string save_dir = utils::get_option(vm, "save_dir", "");
+    boost::regex vid_regex("view.");
     boost::filesystem::path save_directory(save_dir);
-    boost::filesystem::path youtube_bagfile = save_directory / "url_lookup.bag";
     boost::filesystem::path experiment_file = save_directory / "experiment.csv";
 
-    utils::rosbag::TrajToVideoMap traj_video_map;
-
     // read the bag file to get the file names
-    ROS_INFO("Opening bag at %s", youtube_bagfile.string().c_str());
-
-    rosbag::Bag bag;
-    bag.open(youtube_bagfile.string(), rosbag::bagmode::Read);
-    
-    size_t count = 0; 
-    
-    // get all topics in bag
-    rosbag::View view_all(bag);
-    std::vector<const rosbag::ConnectionInfo *> connection_infos = view_all.getConnections();
-    std::vector<std::string> topics;
-    BOOST_FOREACH(const rosbag::ConnectionInfo *info, connection_infos)
-      topics.push_back(info->topic);
-    rosbag::View view_topics(bag, rosbag::TopicQuery(topics));
-    
-    // collect all the topics and video urls into a nice map
-    size_t min_num_tags = 0;
-    for( rosbag::View::iterator it=view_topics.begin(); it!=view_topics.end(); ++it)
-    {
-      std_msgs::String::Ptr strmsg = it->instantiate<std_msgs::String>();
-      if(strmsg!=NULL)
-      {
-        std::string trajectory_name = utils::rosbag::getTrajectoryName(it->getTopic());
-        utils::rosbag::TrajToVideoMap::iterator got = traj_video_map.find(trajectory_name);
-        
-        // has newlines ... need to catch this earlier
-        std::string str = strmsg->data;
-        str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
-
-        if(got!=traj_video_map.end())
-        {
-          // add url to list of urls for this traj
-          got->second.push_back( utils::youtube::getYoutubeEmbedURL(str) );
-          min_num_tags = got->second.size() > min_num_tags ? got->second.size() : min_num_tags;
-        }
-        else
-        {
-          // if traj, create new url list
-          std::vector<std::string> list_of_urls;
-          list_of_urls.push_back( utils::youtube::getYoutubeEmbedURL(str) );
-          traj_video_map.insert( std::make_pair<std::string, 
-                                                std::vector<std::string> >
-                                                (trajectory_name, list_of_urls) );
-        }
-      }
-    }
-    bag.close();
+    ROS_INFO("Opening bag at %s", save_directory.string().c_str());
+    TrajectoryVideoLookup video_lookup_table;
+    video_lookup_table.loadFromBag( save_directory.string() );
 
     // iterate over the keys in the map and save to CSV
     ROS_INFO("Saving to experiment file: %s", experiment_file.string().c_str());
     std::ofstream file;
     file.open(experiment_file.string().c_str());
     
-    ROS_INFO("Minumum number of tags: %d", (int)min_num_tags);
+    // count the number of videos
+    size_t min_num_tags = 0;
+    TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
+    for(; traj_it!=video_lookup_table.end();++traj_it)
+    {
+      size_t num_videos=0;
+      TrajectoryVideoLookupEntry::iterator video_it = traj_it->second.begin();
+      for(; video_it!=traj_it->second.end();++video_it)
+      {
+        boost::cmatch matches;
+        if(boost::regex_match( video_it->name.c_str(), matches, vid_regex ))
+        {
+          num_videos++;
+        }
+      }
+      min_num_tags = (min_num_tags<num_videos)?num_videos:min_num_tags;
+    }
+    ROS_INFO("Minimum number of experiment tags need %d", (int) min_num_tags);
+
     // tag line for amazon exp file is "video1, video2, ... videoN"
     for(size_t i=0; i<min_num_tags; ++i)
     {
@@ -146,29 +121,30 @@ int main(int argc, char** argv)
       file << ((i+1) < min_num_tags?",":"\n");
     }
 
-    utils::rosbag::TrajToVideoMap::iterator it;
-    for( it=traj_video_map.begin(); it!=traj_video_map.end(); ++it)
+    bool put_newline = false;
+    traj_it = video_lookup_table.begin();
+    for(; traj_it!=video_lookup_table.end();++traj_it)
     {
-      assert( it->second.size() <= min_num_tags);
-      if(it->second.size() < min_num_tags)
+      if(put_newline)
+        file << std::endl;
+      
+      size_t num_videos=0;
+      TrajectoryVideoLookupEntry::iterator video_it = traj_it->second.begin();
+      for(; num_videos<min_num_tags; ++num_videos)
       {
-        ROS_WARN("Not enough videos for the number of tags");
-        // not enough videos for the tags, pad the remaining with empty strings
-        for(size_t i=0; i<it->second.size();++i)
-          file << it->second[i] << ",";
-        for(size_t i=it->second.size(); i<min_num_tags;++i)
-          file << (((i+1)<min_num_tags)?",":"\n");
-      }
-      else
-      {
-        // same number of videos 
-        for(size_t k=0; k<min_num_tags;++k)
+        boost::cmatch matches;
+        if(boost::regex_match( video_it->name.c_str(), matches, vid_regex ))
         {
-          file << it->second[k];
-          std::string add = (((k+1)<min_num_tags)?",":"\n");
-          file << add;
+          std::string url = utils::youtube::getYoutubeEmbedURL(video_it->url);
+          file << url;
+          if(num_videos < min_num_tags-1)
+            file << ",";
+          ++video_it;
         }
+        if(video_it==traj_it->second.end())
+          video_it=traj_it->second.begin();
       }
+      put_newline=true;
     }
     file.close();
   }
