@@ -24,7 +24,8 @@ struct TrajectoryVideoEntry
 
 struct TrajectoryVideoLookupEntry
 {
-  typedef std::map<std::string, TrajectoryVideoEntry> VideoHashtable;
+  typedef std::map<std::string, TrajectoryVideoEntry> VideoHashtable; 
+  //TODO change to std::vector<std::pair<std::string, TrajectoryVideoEntry> > >
   moveit_msgs::PlanningScene ps;
   moveit_msgs::MotionPlanRequest mpr;
   moveit_msgs::RobotTrajectory rt;
