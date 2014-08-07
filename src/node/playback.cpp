@@ -44,6 +44,7 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/format.hpp>
 
 #include <view_controller_msgs/CameraPlacement.h>
 
@@ -199,11 +200,10 @@ int main(int argc, char** argv)
           for(view_msg=views.begin(); view_msg!=views.end(); ++view_msg)
           {
             // create filename
-            std::string filename = trajectory_id+boost::lexical_cast<std::string>(view_counter++) + ".ogv";
-            std::string view_id = "view"+boost::lexical_cast<std::string>(view_counter);
+            std::string filename = boost::str(boost::format("%s-%d.%s") % trajectory_id % view_counter++ % "ogv");
+            std::string view_id = boost::str(boost::format("%s%d") % view_id % view_counter);
 
             //Animation request data
-
             AnimationRequest req;
             
             view_msg->time_from_start = ros::Duration(0.001);
@@ -216,9 +216,9 @@ int main(int argc, char** argv)
             req.planning_scene = ps_msg;
             req.motion_plan_request = mpr_msg;
             req.robot_trajectory = rt_msg;
-            req.filepath = filename;
+            req.filepath = (storage_dir/filename).string();
             
-            video_lookup_table.putVideoFile( trajectory_id, view_id, filename );
+            video_lookup_table.putVideoFile( trajectory_id, view_id, req.filepath );
            
             recorder.record(req);
             recorder.startCapture();
