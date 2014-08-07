@@ -39,10 +39,6 @@
 #include <iostream>
 
 #include <ros/ros.h>
-#include <rosbag/bag.h>
-#include <rosbag/query.h>
-#include <rosbag/view.h>
-#include <std_msgs/String.h>
 
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
@@ -65,6 +61,7 @@ int main(int argc, char** argv)
   boost::program_options::options_description desc;
   desc.add_options()
     ("help", "Show help message")
+    ("regex", boost::program_options::value<std::string>(), "Regex of named videos to experiment with")
     ("save_dir",boost::program_options::value<std::string>(), "Directory for videos");
   boost::program_options::variables_map vm;
   boost::program_options::parsed_options po = boost::program_options::parse_command_line(argc, argv, desc);
@@ -80,7 +77,7 @@ int main(int argc, char** argv)
   try
   {
     std::string save_dir = utils::get_option(vm, "save_dir", "");
-    boost::regex vid_regex("view.");
+    boost::regex vid_regex(utils::get_option(vm, "regex", "view."));
     boost::filesystem::path save_directory(save_dir);
     boost::filesystem::path experiment_file = save_directory / "experiment.csv";
 
@@ -130,7 +127,8 @@ int main(int argc, char** argv)
       
       size_t num_videos=0;
       TrajectoryVideoLookupEntry::iterator video_it = traj_it->second.begin();
-      for(; num_videos<min_num_tags; ++num_videos)
+
+      while( num_videos<min_num_tags && video_it!=traj_it->second.end() )
       {
         boost::cmatch matches;
         if(boost::regex_match( video_it->name.c_str(), matches, vid_regex ))
@@ -139,10 +137,11 @@ int main(int argc, char** argv)
           file << url;
           if(num_videos < min_num_tags-1)
             file << ",";
-          ++video_it;
+          num_videos++;
         }
+        video_it++;
         if(video_it==traj_it->second.end())
-          video_it=traj_it->second.begin();
+          video_it = traj_it->second.begin();
       }
       put_newline=true;
     }

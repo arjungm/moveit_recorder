@@ -64,6 +64,7 @@ int main(int argc, char** argv)
     ("help", "Show help message")
     ("user", boost::program_options::value<std::string>(), "Username to upload to")
     ("pass", boost::program_options::value<std::string>(), "Password to upload to")
+    ("regex", boost::program_options::value<std::string>(), "Regex of named videos to upload")
     ("save_dir",boost::program_options::value<std::string>(), "Directory for videos");
   boost::program_options::variables_map vm;
   boost::program_options::parsed_options po = boost::program_options::parse_command_line(argc, argv, desc);
@@ -82,6 +83,7 @@ int main(int argc, char** argv)
     std::string password_flag = boost::str(boost::format("--%s=%s") % "password" % utils::get_option(vm, "pass", "").c_str());
     std::string category_flag = "--category=Tech";
     std::string save_dir = utils::get_option(vm, "save_dir", "");
+    boost::regex vid_regex( utils::get_option(vm, "regex", "view." ) );
 
     boost::filesystem::path save_directory(save_dir);
 
@@ -91,7 +93,6 @@ int main(int argc, char** argv)
     ROS_INFO("Opening bag at %s", save_directory.string().c_str());
 
     // iterate over the table and upload the named videos
-    boost::regex vid_regex( "view." );
     TrajectoryVideoLookup::iterator trajectory_it = video_lookup_table.begin();
     for( ; trajectory_it!=video_lookup_table.end(); ++trajectory_it)
     {
