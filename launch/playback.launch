@@ -27,7 +27,6 @@
     <arg name="allow_trajectory_execution" value="true"/>
     <arg name="fake_execution" value="true"/>
     <arg name="info" value="true"/>
-    <arg name="debug" value="$(arg debug)"/>
   </include>
 
   <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"
@@ -45,6 +44,8 @@
   <arg name="display_traj_topic" default="/move_group/display_planned_path" />
   <arg name="animation_status_topic" default="animation_status" />
   <arg name="save_dir" default="$(find moveit_recorder)/videos/" />
+  <arg name="query_regex" default=".*" />
+  <arg name="scene_regex" default=".*" />
 
   <node name="playback" pkg="moveit_recorder" type="playback_node" 
     args="--host $(arg host) 
@@ -54,7 +55,9 @@
           --planning_scene_topic $(arg planning_scene_topic)
           --display_traj_topic $(arg display_traj_topic)
           --animation_status_topic $(arg animation_status_topic)
-          --save_dir $(arg save_dir)" respawn="false" output="screen">
+          --query_regex $(arg query_regex)
+          --scene_regex $(arg scene_regex)
+          --save_dir $(arg save_dir)" launch-prefix="$(arg launch_prefix)" respawn="false" output="screen">
   </node>
 
 </launch>
