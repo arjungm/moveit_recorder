@@ -45,6 +45,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/format.hpp>
+#include <boost/regex.hpp>
 
 #include <view_controller_msgs/CameraPlacement.h>
 
@@ -75,6 +76,8 @@ int main(int argc, char** argv)
     ("host", boost::program_options::value<std::string>(), "Host for the MongoDB.")
     ("port", boost::program_options::value<std::size_t>(), "Port for the MongoDB.")
     ("views",boost::program_options::value<std::string>(), "Bag file for viewpoints")
+    ("scene_regex",boost::program_options::value<std::string>(), "Regex for matching the scenes")
+    ("query_regex",boost::program_options::value<std::string>(), "Regex for matching the queries")
     ("camera_topic",boost::program_options::value<std::string>(), "Topic for publishing to the camera position")
     ("planning_scene_topic",boost::program_options::value<std::string>(), "Topic for publishing the planning scene for recording")
     ("display_traj_topic",boost::program_options::value<std::string>(), "Topic for publishing the trajectory for recorder")
@@ -128,6 +131,9 @@ int main(int argc, char** argv)
     std::string display_traj_topic = utils::get_option(vm, "display_traj_topic", "/move_group/display_planned_path");
     std::string anim_status_topic = utils::get_option(vm, "animation_status_topic", "animation_status");
 
+    boost::regex scene_regex( utils::get_option(vm, "scene_regex", ".*") );
+    boost::regex query_regex( utils::get_option(vm, "query_regex", ".*") );
+
     AnimationRecorder recorder( camera_placement_topic,
                                 planning_scene_topic,
                                 display_traj_topic,
@@ -143,6 +149,10 @@ int main(int argc, char** argv)
     std::vector<std::string>::iterator scene_name = ps_names.begin();
     for(; scene_name!=ps_names.end(); ++scene_name)
     {
+      boost::cmatch matches;
+      if(!boost::regex_match( scene_name->c_str(), matches, scene_regex ))
+        continue;
+
       ROS_INFO("Retrieving scene %s", scene_name->c_str());
       moveit_warehouse::PlanningSceneWithMetadata pswm;
       pss.getPlanningScene(pswm, *scene_name);
@@ -157,6 +167,8 @@ int main(int argc, char** argv)
       std::vector<std::string>::iterator query_name = pq_names.begin();
       for(; query_name!=pq_names.end(); ++query_name)
       {
+        if(!boost::regex_match( query_name->c_str(), matches, query_regex ))
+          continue;
         ROS_INFO("Retrieving query %s", query_name->c_str());
         moveit_warehouse::MotionPlanRequestWithMetadata mprwm;
         pss.getPlanningQuery(mprwm, *scene_name, *query_name);
@@ -201,7 +213,7 @@ int main(int argc, char** argv)
           {
             // create filename
             std::string filename = boost::str(boost::format("%s-%d.%s") % trajectory_id % view_counter++ % "ogv");
-            std::string view_id = boost::str(boost::format("%s%d") % view_id % view_counter);
+            std::string view_id = boost::str(boost::format("%s%d") % "view" % view_counter);
 
             //Animation request data
             AnimationRequest req;
