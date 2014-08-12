@@ -13,7 +13,7 @@
   <arg name="host" default="127.0.0.1" />
   <arg name="port" default="33829" />
   <arg name="debug_bag" default="$(find moveit_recorder)/videos/" />
-  <arg name="cfg" default="$(find moveit_recorder)/test/benchmark_drawer1.cfg" />
+  
 
   <!-- Start Benchmark Executable -->
   <node name="$(anon moveit_benchmark)" pkg="moveit_ros_benchmarks" type="moveit_run_benchmark" launch-prefix="$(arg launch_prefix)" 
