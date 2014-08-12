@@ -21,3 +21,10 @@
 *.app
 
 *.swp
+
+videos/
+test/
+control/
+vid_db/
+notes.txt
+src/test.cpp
