@@ -52,10 +52,7 @@
 #include "moveit_recorder/trajectory_retimer.h"
 #include "moveit_recorder/animation_recorder.h"
 #include "moveit_recorder/utils.h"
-
-#include <rosbag/bag.h>
-#include <rosbag/query.h>
-#include <rosbag/view.h>
+#include "moveit_recorder/experiment_utils.h"
 
 #include <algorithm>
 
@@ -112,17 +109,7 @@ int main(int argc, char** argv)
     // load the viewpoints
     std::string bagfilename = vm.count("views") ? vm["views"].as<std::string>() : "";
     std::vector<view_controller_msgs::CameraPlacement> views;
-    rosbag::Bag viewbag;
-    viewbag.open(bagfilename, rosbag::bagmode::Read);
-    std::vector<std::string> topics; topics.push_back("viewpoints");
-    rosbag::View view_t(viewbag, rosbag::TopicQuery(topics));
-    BOOST_FOREACH(rosbag::MessageInstance const m, view_t)
-    {
-      view_controller_msgs::CameraPlacement::ConstPtr i = m.instantiate<view_controller_msgs::CameraPlacement>();
-      if (i != NULL)
-        views.push_back(*i);
-    }
-    viewbag.close();
+    utils::rosbag_storage::getViewsFromBag( bagfilename, views );
     ROS_INFO("%d views loaded",(int)views.size());
 
     //TODO change these to params
@@ -185,11 +172,12 @@ int main(int argc, char** argv)
         {
           moveit_msgs::RobotTrajectory rt_msg;
           rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(**traj_w_mdata);
-          // retime it
+          // retime it and post process it
           TrajectoryRetimer retimer( "robot_description", mpr_msg.group_name );
           retimer.configure(ps_msg, mpr_msg);
           bool result = retimer.retime(rt_msg);
           ROS_INFO("Retiming success? %s", result? "yes" : "no" );
+          retimer.addTimeToStartandGoal(rt_msg);
             
           //date and time based filename
           boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
