@@ -7,6 +7,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
+#include <rosbag/bag.h>
+#include <rosbag/query.h>
+#include <rosbag/view.h>
+
+
 std::string utils::system::runCommand(const std::string& command)
 {
   char* buffer= new char[255];
@@ -44,7 +49,17 @@ std::string utils::youtube::getYoutubeEmbedURL(const std::string& url)
   return "//www.youtube.com/embed/"+getYoutubeVideoID(url);
 }
 
-
-void utils::videoproc::createSplitScreenVideo(std::vector<std::string>& video_lists)
+void utils::rosbag_storage::getViewsFromBag(const std::string& bagname, std::vector<view_controller_msgs::CameraPlacement>& views)
 {
+  rosbag::Bag viewbag;
+  viewbag.open(bagname, rosbag::bagmode::Read);
+  std::vector<std::string> topics; topics.push_back("viewpoints");
+  rosbag::View view_t(viewbag, rosbag::TopicQuery(topics));
+  BOOST_FOREACH(rosbag::MessageInstance const m, view_t)
+  {
+    view_controller_msgs::CameraPlacement::ConstPtr i = m.instantiate<view_controller_msgs::CameraPlacement>();
+    if (i != NULL)
+      views.push_back(*i);
+  }
+  viewbag.close();
 }

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
+#include <view_controller_msgs/CameraPlacement.h>
 #include <std_msgs/String.h>
 #include <rosbag/view.h>
 
@@ -24,9 +25,9 @@ namespace utils
     std::string getYoutubeEmbedURL(const std::string& url);
   }
 
-  namespace videoproc
+  namespace rosbag_storage
   {
-    void createSplitScreenVideo(std::vector<std::string>& video_lists);
+    void getViewsFromBag(const std::string& bagname, std::vector<view_controller_msgs::CameraPlacement>& views);
   }
 }
 #endif
