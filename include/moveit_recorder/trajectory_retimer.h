@@ -58,6 +58,9 @@ class TrajectoryRetimer
     void configure(const moveit_msgs::PlanningScene& ps_msg,
                    const moveit_msgs::MotionPlanRequest& mpr_msg);
     bool retime(moveit_msgs::RobotTrajectory& traj);
+    void addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_msg);
+    moveit_msgs::RobotTrajectory createDisplayTrajectoryForState( const moveit_msgs::RobotTrajectory& rt_msg, 
+                                                                  const size_t index, const size_t num_waypoints);
 
   private:
     std::string m_group_name;

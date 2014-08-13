@@ -58,8 +58,13 @@ bool TrajectoryRetimer::retime(moveit_msgs::RobotTrajectory& rt_msg)
 {
   rt_->setRobotTrajectoryMsg(*reference_state_, rt_msg);
   bool success_retime = traj_retimer_.computeTimeStamps(*rt_);
+  return success_retime;
+}
 
+void TrajectoryRetimer::addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_msg)
+{
   // modify robot trajectory for longer start and stop visualization.
+  rt_->setRobotTrajectoryMsg(*reference_state_, rt_msg);
   const robot_state::RobotState first = rt_->getFirstWayPoint();
   const robot_state::RobotState last = rt_->getLastWayPoint();
 
@@ -70,6 +75,23 @@ bool TrajectoryRetimer::retime(moveit_msgs::RobotTrajectory& rt_msg)
     rt_->addSuffixWayPoint(last, 1); // repeat the last waypoint for 2s
   
   rt_->getRobotTrajectoryMsg(rt_msg);
+}
 
-  return success_retime;
+moveit_msgs::RobotTrajectory TrajectoryRetimer::createDisplayTrajectoryForState(const moveit_msgs::RobotTrajectory& rt_msg, const size_t index, const size_t num_waypoints)
+{
+  // create display trajectory
+  moveit_msgs::RobotTrajectory display_rt_msg;
+  robot_trajectory::RobotTrajectoryPtr display_rt = boost::make_shared<robot_trajectory::RobotTrajectory>(ps_->getRobotModel(), m_group_name);
+  
+  // get way point
+  rt_->setRobotTrajectoryMsg(*reference_state_, rt_msg);
+  const robot_state::RobotState state = rt_->getWayPoint( index );
+  
+  // populate display trajectory
+  for(int i=0; i<num_waypoints; i++)
+    display_rt->addSuffixWayPoint(state, 1); // repeat the last waypoint for 2s
+  
+  // return as message
+  display_rt->getRobotTrajectoryMsg(display_rt_msg);
+  return display_rt_msg;
 }
