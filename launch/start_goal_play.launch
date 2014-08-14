@@ -1,0 +1,55 @@
+<launch>
+
+  <!-- LAUNCH RVIZ -->
+
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+  <arg name="config" default="true" />
+  <arg unless="$(arg config)" name="command_args" default="" />
+  <arg     if="$(arg config)" name="command_args" default="-d $(find moveit_recorder)/launch/recordit.rviz" />
+
+  <include file="$(find pr2_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <node pkg="tf" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 odom_combined base_footprint 100" />
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+    <param name="/use_gui" value="false"/>
+    <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
+  </node>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen" />
+
+  <include file="$(find pr2_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="true"/>
+    <arg name="info" value="true"/>
+  </include>
+
+  <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"
+      args="$(arg command_args)" output="screen">
+    <rosparam command="load" file="$(find pr2_moveit_config)/config/kinematics.yaml"/>
+  </node>
+
+  <!-- LAUNCH PLAYBACK NODE -->
+
+  <arg name="views" default="$(find moveit_recorder)/videos/view.bag" />
+  <arg name="camera_topic" default="/rviz/camera_placement" />
+  <arg name="planning_scene_topic" default="planning_scene" />
+  <arg name="display_traj_topic" default="/move_group/display_planned_path" />
+  <arg name="animation_status_topic" default="animation_status" />
+  <arg name="save_dir" default="$(find moveit_recorder)/videos/" />
+
+  <node name="start_goal_playback" pkg="moveit_recorder" type="start_goal_playback" 
+    args="--views $(arg views)
+          --camera_topic $(arg camera_topic)
+          --planning_scene_topic $(arg planning_scene_topic)
+          --display_traj_topic $(arg display_traj_topic)
+          --animation_status_topic $(arg animation_status_topic)
+          --save_dir $(arg save_dir)" launch-prefix="$(arg launch_prefix)" respawn="false" output="screen">
+  </node>
+
+</launch>
