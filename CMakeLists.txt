@@ -142,8 +142,14 @@ target_link_libraries(experiment_node moveit_recorder_lib ${catkin_LIBRARIES})
 add_executable(split_screen_creator_node src/node/split_screen_creator.cpp)
 target_link_libraries(split_screen_creator_node moveit_recorder_lib ${catkin_LIBRARIES})
 
-add_executable(start_goal_video_recorder_node src/node/start_goal_video_recorder.cpp)
-target_link_libraries(start_goal_video_recorder_node moveit_recorder_lib ${catkin_LIBRARIES})
+add_executable(start_goal_playback src/node/start_goal_video_recorder.cpp)
+target_link_libraries(start_goal_playback moveit_recorder_lib ${catkin_LIBRARIES})
+
+add_executable(concat_node src/node/concatenate_videos.cpp)
+target_link_libraries(concat_node moveit_recorder_lib ${catkin_LIBRARIES})
+
+add_executable(testnode src/test.cpp)
+target_link_libraries(testnode moveit_recorder_lib ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
