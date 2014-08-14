@@ -113,9 +113,9 @@ int main(int argc, char** argv)
       TrajectoryRetimer retimer( "robot_description", trajectory_it->second.mpr.group_name );
       retimer.configure(trajectory_it->second.ps, trajectory_it->second.mpr);
       
-      moveit_msgs::RobotTrajectory start_display = retimer.createDisplayTrajectoryForState(trajectory_it->second.rt, 0, 20);
+      moveit_msgs::RobotTrajectory start_display = retimer.createDisplayTrajectoryForState(trajectory_it->second.rt, 0, 80);
       moveit_msgs::RobotTrajectory goal_display = retimer.createDisplayTrajectoryForState(trajectory_it->second.rt, 
-                                                trajectory_it->second.rt.joint_trajectory.points.size()-1, 20);
+                                                trajectory_it->second.rt.joint_trajectory.points.size()-1, 80);
       
       // for each view, record
       int view_counter=0;
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
       for(view_msg=views.begin(); view_msg!=views.end(); ++view_msg)
       {
         // name the video
-        std::string video_id = boost::str(boost::format("%s%d") % "start" % view_counter);
+        std::string video_id = boost::str(boost::format("%s%d") % "start" % ++view_counter);
         std::string video_name = boost::str(boost::format("%s-%s.%s") % traj_id % video_id % "ogv");
         std::string video_file = (save_directory/video_name).string();
 
