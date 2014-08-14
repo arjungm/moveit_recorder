@@ -1,0 +1,14 @@
+<launch>
+
+  <arg name="save_dir" default="$(find moveit_recorder)/videos" />
+  <arg name="prefix" default="merge" />
+  <arg name="resources" />
+  <arg name="videos" />
+  
+  <node name="concat_node" pkg="moveit_recorder" type="concat_node" 
+    args="--save_dir $(arg save_dir) --prefix $(arg prefix) --resources $(arg resources) --videos $(arg videos)"
+    respawn="false" output="screen">
+  </node>
+  
+</launch>
+
