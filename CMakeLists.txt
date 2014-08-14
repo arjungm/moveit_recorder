@@ -21,7 +21,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
 
-
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -132,21 +131,6 @@ target_link_libraries(benchmark_designer_node moveit_recorder_lib
 
 add_executable(markers_node src/node/start_goal_marker_nodes.cpp)
 target_link_libraries(markers_node moveit_recorder_lib ${catkin_LIBRARIES})
-
-add_executable(uploader_node src/node/youtube_upload_script_node.cpp)
-target_link_libraries(uploader_node moveit_recorder_lib ${catkin_LIBRARIES})
-
-add_executable(experiment_node src/node/youtube_url_to_experiment_creator.cpp)
-target_link_libraries(experiment_node moveit_recorder_lib ${catkin_LIBRARIES})
-
-add_executable(split_screen_creator_node src/node/split_screen_creator.cpp)
-target_link_libraries(split_screen_creator_node moveit_recorder_lib ${catkin_LIBRARIES})
-
-add_executable(start_goal_playback src/node/start_goal_video_recorder.cpp)
-target_link_libraries(start_goal_playback moveit_recorder_lib ${catkin_LIBRARIES})
-
-add_executable(concat_node src/node/concatenate_videos.cpp)
-target_link_libraries(concat_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 add_executable(testnode src/test.cpp)
 target_link_libraries(testnode moveit_recorder_lib ${catkin_LIBRARIES})
