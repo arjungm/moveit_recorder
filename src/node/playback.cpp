@@ -52,7 +52,6 @@
 #include "moveit_recorder/trajectory_retimer.h"
 #include "moveit_recorder/animation_recorder.h"
 #include "moveit_recorder/utils.h"
-#include "moveit_recorder/experiment_utils.h"
 
 #include <algorithm>
 
