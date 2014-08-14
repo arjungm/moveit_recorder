@@ -200,7 +200,7 @@ int main(int argc, char** argv)
           for(view_msg=views.begin(); view_msg!=views.end(); ++view_msg)
           {
             // create filename
-            std::string filename = boost::str(boost::format("%s-%d.%s") % trajectory_id % view_counter++ % "ogv");
+            std::string filename = boost::str(boost::format("%s-%d.%s") % trajectory_id % ++view_counter % "ogv");
             std::string view_id = boost::str(boost::format("%s%d") % "view" % view_counter);
 
             //Animation request data
