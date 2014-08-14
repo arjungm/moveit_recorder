@@ -34,6 +34,9 @@
 
 /* Author: Arjun Menon */
 
+#ifndef TRAJ_RETIME_UTIL_H
+#define TRAJ_RETIME_UTIL_H
+
 #include <string>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
@@ -41,14 +44,9 @@
 #include <moveit/robot_state/robot_state.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
 
-
 #include <moveit_msgs/MotionPlanRequest.h>
 #include <moveit_msgs/RobotTrajectory.h>
 #include <moveit_msgs/PlanningScene.h>
-
-
-#ifndef TRAJ_RETIME_UTIL_H
-#define TRAJ_RETIME_UTIL_H
 
 class TrajectoryRetimer
 {
