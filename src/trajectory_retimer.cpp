@@ -34,6 +34,7 @@
 
 /* Author: Arjun Menon */
 
+#include <moveit/robot_state/conversions.h>
 #include <moveit_recorder/trajectory_retimer.h>
 
 TrajectoryRetimer::TrajectoryRetimer(std::string robot_desc, std::string group_name) : traj_retimer_(),
@@ -75,6 +76,23 @@ void TrajectoryRetimer::addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_m
     rt_->addSuffixWayPoint(last, 1); // repeat the last waypoint for 2s
   
   rt_->getRobotTrajectoryMsg(rt_msg);
+}
+
+moveit_msgs::RobotState TrajectoryRetimer::getStartState(const moveit_msgs::RobotTrajectory& rt_msg)
+{
+  moveit_msgs::RobotState display_rs_msg;
+  rt_->setRobotTrajectoryMsg(*reference_state_, rt_msg);
+  const robot_state::RobotState state = rt_->getWayPoint(0);
+  robotStateToRobotStateMsg(state, display_rs_msg);
+  return display_rs_msg;
+}
+moveit_msgs::RobotState TrajectoryRetimer::getGoalState(const moveit_msgs::RobotTrajectory& rt_msg)
+{
+  moveit_msgs::RobotState display_rs_msg;
+  rt_->setRobotTrajectoryMsg(*reference_state_, rt_msg);
+  const robot_state::RobotState state = rt_->getWayPoint( rt_msg.joint_trajectory.points.size()-1 );
+  robotStateToRobotStateMsg(state, display_rs_msg);
+  return display_rs_msg;
 }
 
 moveit_msgs::RobotTrajectory TrajectoryRetimer::createDisplayTrajectoryForState(const moveit_msgs::RobotTrajectory& rt_msg, const size_t index, const size_t num_waypoints)

@@ -60,6 +60,9 @@ class TrajectoryRetimer
     moveit_msgs::RobotTrajectory createDisplayTrajectoryForState( const moveit_msgs::RobotTrajectory& rt_msg, 
                                                                   const size_t index, const size_t num_waypoints);
 
+    moveit_msgs::RobotState getGoalState(const moveit_msgs::RobotTrajectory& rt_msg);
+    moveit_msgs::RobotState getStartState(const moveit_msgs::RobotTrajectory& rt_msg);
+
   private:
     std::string m_group_name;
 
