@@ -104,12 +104,7 @@ int main(int argc, char** argv)
 
     // track associated videos with the plans that created them
     TrajectoryVideoLookup video_lookup_table;
-
-    // load the viewpoints
-    std::string bagfilename = vm.count("views") ? vm["views"].as<std::string>() : "";
-    std::vector<view_controller_msgs::CameraPlacement> views;
-    utils::rosbag_storage::getViewsFromBag( bagfilename, views );
-    ROS_INFO("%d views loaded",(int)views.size());
+    video_lookup_table.loadFromBag( storage_dir.string() );
 
     //TODO change these to params
     std::string camera_placement_topic = utils::get_option(vm, "camera_topic", "/rviz/camera_placement");
@@ -125,7 +120,62 @@ int main(int argc, char** argv)
                                 display_traj_topic,
                                 anim_status_topic,
                                 node_handle);
+    
+    
+    TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
+    // for each traj
+    for(;traj_it!=video_lookup_table.end();++traj_it)
+    {
+      // match regexes
+      boost::cmatch matches;
+      if(!boost::regex_match( traj_it->second.ps.name.c_str(), matches, scene_regex ))
+        continue;
+      
+      // post process trajectory (Add timing, add pauses to start and goal states)
+      moveit_msgs::RobotTrajectory post_processed_rt = traj_it->second.rt;
+      TrajectoryRetimer retimer( "robot_description", traj_it->second.mpr.group_name );
+      retimer.configure(traj_it->second.ps, traj_it->second.mpr);
+      bool result = retimer.retime(post_processed_rt);
+      retimer.addTimeToStartandGoal(post_processed_rt);
+      ROS_INFO("Post processing success? %s", result? "yes" : "no" );
 
+      //make request
+      AnimationRequest req;
+      req.planning_scene = traj_it->second.ps;
+      req.motion_plan_request = traj_it->second.mpr;
+      req.robot_trajectory = post_processed_rt;
+
+      // for each view
+      std::vector<view_controller_msgs::CameraPlacement>::iterator view_it = traj_it->second.views.begin();
+      size_t view_counter=0;
+      for(;view_it!=traj_it->second.views.end();++view_it)
+      {
+        view_controller_msgs::CameraPlacement view_msg = *view_it;
+        // create filename
+        std::string filename = boost::str(boost::format("%s-%d.%s") % traj_it->first % ++view_counter % "ogv");
+        std::string view_id = boost::str(boost::format("%s%d") % "view" % view_counter);
+
+        //Animation request view
+        view_msg.time_from_start = ros::Duration(0.001);
+        ros::Time t_now = ros::Time::now();
+        view_msg.eye.header.stamp = t_now;
+        view_msg.focus.header.stamp = t_now;
+        view_msg.up.header.stamp = t_now;
+        
+        // view specific
+        req.camera_placement = view_msg;
+        req.filepath = (storage_dir/filename).string();
+
+        video_lookup_table.putVideoFile( traj_it->first, view_id, req.filepath );
+
+        recorder.record(req);
+        recorder.startCapture();
+        ROS_INFO("Recording view #%d for trajectory id=\"%s\" complete.", (int)view_counter, traj_it->first.c_str());
+      }
+      ROS_INFO("Recording for trajectory id=\"%s\" complete.", traj_it->first.c_str());
+    }
+
+    /*
     // ask the warehouse for the scenes
     std::vector<std::string> ps_names;
     pss.getPlanningSceneNames( ps_names );
@@ -226,7 +276,7 @@ int main(int argc, char** argv)
         }//traj
       }//query
     }//scene
-
+    */
     video_lookup_table.saveToBag( (storage_dir/"video_lookup.bag").string() );
   }
   catch(mongo_ros::DbConnectException &ex)
