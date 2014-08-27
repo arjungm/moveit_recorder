@@ -19,3 +19,23 @@ void utils::rosbag_storage::getViewsFromBag(const std::string& bagname, std::vec
   }
   viewbag.close();
 }
+
+void utils::rostopic::waitOnSubscribersToTopic(const ros::Publisher& pub, const std::string& topic)
+{
+  while(pub.getNumSubscribers() < 1)
+  {
+    ros::WallDuration sleep_t(0.5);
+    ROS_INFO("[Recorder] Not enough subscribers to \"%s\" topic... ", topic.c_str());
+    sleep_t.sleep();
+  }
+}
+
+void utils::rostopic::waitOnPublishersToTopic(const ros::Subscriber& sub, const std::string& topic)
+{
+  while(sub.getNumPublishers() < 1)
+  {
+    ros::WallDuration sleep_t(0.5);
+    ROS_INFO("[Recorder] Not enough publishers to \"%s\" topic... ", topic.c_str());
+    sleep_t.sleep();
+  }
+}
