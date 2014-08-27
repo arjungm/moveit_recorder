@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system filesystem)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -133,7 +133,7 @@ add_executable(markers_node src/node/start_goal_marker_nodes.cpp)
 target_link_libraries(markers_node moveit_recorder_lib ${catkin_LIBRARIES})
 
 add_executable(testnode src/test.cpp)
-target_link_libraries(testnode moveit_recorder_lib ${catkin_LIBRARIES})
+target_link_libraries(testnode moveit_recorder_lib ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
