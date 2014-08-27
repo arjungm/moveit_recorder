@@ -37,8 +37,13 @@
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <boost/program_options.hpp>
+#include <moveit_msgs/PlanningScene.h>
+#include <moveit_msgs/DisplayTrajectory.h>
 #include <view_controller_msgs/CameraPlacement.h>
 #include <moveit_recorder/cli_controller.h>
+#include <moveit_recorder/utils.h>
+
+#include "moveit_recorder/trajectory_video_lookup.h"
 
 static view_controller_msgs::CameraPlacement last_recorded_msg;
 
@@ -59,6 +64,11 @@ int main(int argc, char** argv)
   boost::program_options::options_description desc;
   desc.add_options()
     ("help", "Show help message")
+    ("host", boost::program_options::value<std::string>(), "Host for the MongoDB.")
+    ("port", boost::program_options::value<std::size_t>(), "Port for the MongoDB.")
+    ("planning_scene_topic",boost::program_options::value<std::string>(), "Topic for publishing the planning scene for recording")
+    ("display_traj_topic",boost::program_options::value<std::string>(), "Topic for publishing the trajectory for recorder")
+    ("camera_topic",boost::program_options::value<std::string>(), "Topic for publishing to the camera position")
     ("save_dir", boost::program_options::value<std::string>(), "Directory to store the recorded bagfile of viewpoints");
 
   boost::program_options::variables_map vm;
@@ -74,34 +84,72 @@ int main(int argc, char** argv)
   try
   {
     std::string save_dir = vm.count("save_dir") ? vm["save_dir"].as<std::string>() : "/tmp/views.bag";
+    std::string host = vm.count("host") ? vm["host"].as<std::string>() : "";
+    size_t port = vm.count("port") ? vm["port"].as<std::size_t>() : 0;
+    std::string planning_scene_topic =utils:: get_option(vm, "planning_scene_topic", "planning_scene");
+    std::string display_traj_topic = utils::get_option(vm, "display_traj_topic", "/move_group/display_planned_path");
+    std::string camera_placement_topic = utils::get_option(vm, "camera_topic", "/rviz/current_camera_placement");
 
-    ros::Subscriber sub = node_handle.subscribe("/rviz/current_camera_placement",1,recordViewpointCallback);
-    while(sub.getNumPublishers() < 1)
+    TrajectoryVideoLookup video_lookup_table;
+    video_lookup_table.initializeFromWarehouse(host,port);
+    
+    // pubs and subs
+    ros::Subscriber cam_sub = node_handle.subscribe(camera_placement_topic,1,recordViewpointCallback);
+    ros::Publisher scene_pub = node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic,1);
+    ros::Publisher traj_pub = node_handle.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1);
+    
+    // block til other nodes are ready
+    utils::rostopic::waitOnSubscribersToTopic( scene_pub, planning_scene_topic );
+    utils::rostopic::waitOnSubscribersToTopic( traj_pub, display_traj_topic );
+    utils::rostopic::waitOnPublishersToTopic( cam_sub, camera_placement_topic );
+  
+    std::vector<view_controller_msgs::CameraPlacement> last_saved_views;
+    std::vector<view_controller_msgs::CameraPlacement> current_views;
+    TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
+    
+    while(ros::ok() && traj_it!=video_lookup_table.end())
     {
-      ros::WallDuration sleep_t(0.5);
-      ROS_INFO("Waiting on publishers to topic: %s", "/rviz/current_camera_placement");
-      sleep_t.sleep();
-    }
+      // visualize next
+      scene_pub.publish(traj_it->second.ps);
+      moveit_msgs::DisplayTrajectory display_trajectory;
+      display_trajectory.trajectory_start = traj_it->second.mpr.start_state;
+      display_trajectory.trajectory.push_back(traj_it->second.rt);
+      traj_pub.publish(display_trajectory);
 
-    rosbag::Bag bag(save_dir, rosbag::bagmode::Write);
-    bag.close();
-
-    while(ros::ok())
-    {
       ros::spinOnce();
       usleep(1000);
 
       // use non blocking keygrab
       int c = recorder_utils::getch();
-      if(c=='s')
+      if(c=='n')
       {
-        ROS_INFO("Writing to bag...");
-        rosbag::Bag bag(save_dir, rosbag::bagmode::Append);
-        bag.write("viewpoints", ros::Time::now(), last_recorded_msg);
-        bag.close();
-        ROS_INFO("Saved to bag!");
+        if(current_views.size()!=0)
+          last_saved_views = current_views;
+        for(int i=0; i<last_saved_views.size();++i)
+          video_lookup_table.put(traj_it->first, last_saved_views[i]);
+        ROS_INFO("Associating %d views to trajectory id \"%s\"", (int)last_saved_views.size(), traj_it->first.c_str());
+        
+        // next traj
+        current_views.clear();
+        traj_it++;
+      }
+      else if(c=='a')
+      {
+        ros::spinOnce();
+        usleep(1000);
+        current_views.push_back(last_recorded_msg);
+        ROS_INFO("Adding view. %d so far", (int)current_views.size());
+      }
+      else if(c=='x')
+      {
+        video_lookup_table.saveToBag(save_dir);
+        ROS_INFO("Prematurely terminated!");
+        ros::shutdown();
       }
     }
+    video_lookup_table.saveToBag(save_dir);
+    ROS_INFO("Finished grabbing views!");
+    ros::shutdown();
   }
   catch(...)
   {
