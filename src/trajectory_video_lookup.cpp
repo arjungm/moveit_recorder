@@ -1,8 +1,12 @@
 #include <ros/ros.h>
-#include <algorithm>
-#include <moveit_recorder/trajectory_video_lookup.h>
+#include <moveit/move_group_interface/move_group.h>
+#include <moveit/warehouse/planning_scene_storage.h>
 
-namespace boostfs = boost::filesystem;
+#include <algorithm>
+#include "moveit_recorder/trajectory_video_lookup.h"
+
+#include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 void TrajectoryVideoLookupEntry::addVideoFile(const std::string& name, const std::string& file)
 {
@@ -42,6 +46,11 @@ void TrajectoryVideoLookupEntry::addVideoURL(const std::string& name, const std:
     entry.url = url;
     videos.push_back(entry);
   }
+}
+
+void TrajectoryVideoLookupEntry::addView(const view_controller_msgs::CameraPlacement& view)
+{
+  views.push_back(view);
 }
 
 TrajectoryVideoLookupEntry::iterator TrajectoryVideoLookupEntry::begin()
@@ -95,6 +104,14 @@ void TrajectoryVideoLookup::put(const std::string& tkey, moveit_msgs::RobotTraje
   if( !hasEntry(tkey, entry) )
     createEntry(tkey, entry);
   entry->second.rt = rt;
+}
+
+void TrajectoryVideoLookup::put(const std::string& tkey, view_controller_msgs::CameraPlacement view)
+{
+  TrajectoryHashtable::iterator entry;
+  if( !hasEntry(tkey, entry) )
+    createEntry(tkey, entry);
+  entry->second.addView( view );
 }
 
 void TrajectoryVideoLookup::put(const std::string& tkey, TrajectoryVideoEntry vid)
@@ -171,8 +188,9 @@ void TrajectoryVideoLookup::parseBagFile(rosbag::Bag& bag)
     boost::filesystem::path::iterator path_it;
     for( path_it = topic_path.begin(); path_it!=topic_path.end(); ++path_it)
     {
-      if(path_it->string()!="/") //skip root
-        path_decomp.push_back( path_it->string() );
+      std::string path_string = path_it->c_str();
+      if(path_string!="/") //skip root
+        path_decomp.push_back( path_string );
     }
 
     // check if the path decomposition is a valid entry for the table
@@ -214,6 +232,18 @@ void TrajectoryVideoLookup::parseBagFile(rosbag::Bag& bag)
           ROS_WARN("No saved trajectory for trajectory id \'%s\'",path_decomp[0].c_str());
         continue;
       }
+      if(path_decomp[1]=="views")
+      {
+        view_controller_msgs::CameraPlacement::Ptr viewmsg = bagview_it->instantiate<view_controller_msgs::CameraPlacement>();
+        if(viewmsg!=NULL)
+        {
+          ROS_INFO("Loaded view for trajectory id \"%s\"", path_decomp[0].c_str());
+          put( path_decomp[0], *viewmsg );
+        }
+        else
+          ROS_WARN("No saved view for trajectory id \'%s\'",path_decomp[0].c_str());
+        continue;
+      }
     }
     else if(path_decomp.size() == 3 ) // is a video file -or- url
     {
@@ -244,7 +274,8 @@ void TrajectoryVideoLookup::writeBagFile(rosbag::Bag& bag)
   size_t trajectory_count=0;
   for( ; entry!=table_.end(); ++entry)
   {
-    boostfs::path topic("/");
+    // /<traj>/<type>/<name> 
+    boost::filesystem::path topic("/");
     topic = topic / entry->first;
     bag.write<moveit_msgs::PlanningScene>( (topic/"ps").string() , ros::Time::now(), entry->second.ps);
     bag.write<moveit_msgs::MotionPlanRequest>( (topic/"mpr").string() , ros::Time::now(), entry->second.mpr);
@@ -263,9 +294,81 @@ void TrajectoryVideoLookup::writeBagFile(rosbag::Bag& bag)
       video_count++;
     }
     ROS_INFO("Saved %d videos", (int) video_count );
+
+    size_t view_count = 0;
+    std::vector<view_controller_msgs::CameraPlacement>::iterator view_it = entry->second.views.begin();
+    for(;view_it!=entry->second.views.end();++view_it)
+    {
+      bag.write<view_controller_msgs::CameraPlacement>( (topic/"views").string(), ros::Time::now(), *view_it);
+      view_count++;
+    }
+    ROS_INFO("Saved %d views", (int) view_count );
     trajectory_count++;
   }
   ROS_INFO("Saved %d trajectories", (int) trajectory_count );
+}
+void TrajectoryVideoLookup::initializeFromWarehouse(const std::string& host, const size_t port)
+{
+  moveit_warehouse::PlanningSceneStorage pss(host, port);
+  ROS_INFO("Connected to Warehouse DB at host (%s) and port (%d)", host.c_str(), (int)port);
+  
+  // ask the warehouse for the scenes
+  std::vector<std::string> ps_names;
+  pss.getPlanningSceneNames( ps_names );
+  ROS_INFO("%d available scenes to display", (int)ps_names.size());
+  std::vector<std::string>::iterator scene_name = ps_names.begin();
+  for(; scene_name!=ps_names.end(); ++scene_name)
+  {
+    ROS_INFO("Retrieving scene %s", scene_name->c_str());
+    moveit_warehouse::PlanningSceneWithMetadata pswm;
+    pss.getPlanningScene(pswm, *scene_name);
+    moveit_msgs::PlanningScene ps_msg = static_cast<const moveit_msgs::PlanningScene&>(*pswm);
+    
+    // ask qarehosue for the queries
+    std::vector<std::string> pq_names;
+    pss.getPlanningQueriesNames( pq_names, *scene_name);
+    ROS_INFO("%d available queries to display", (int)pq_names.size());
+
+    // iterate over the queries
+    std::vector<std::string>::iterator query_name = pq_names.begin();
+    for(; query_name!=pq_names.end(); ++query_name)
+    {
+      ROS_INFO("Retrieving query %s", query_name->c_str());
+      moveit_warehouse::MotionPlanRequestWithMetadata mprwm;
+      pss.getPlanningQuery(mprwm, *scene_name, *query_name);
+      moveit_msgs::MotionPlanRequest mpr_msg = static_cast<const moveit_msgs::MotionPlanRequest&>(*mprwm);
+
+      // ask warehouse for stored trajectories
+      std::vector<moveit_warehouse::RobotTrajectoryWithMetadata> planning_results;
+      pss.getPlanningResults(planning_results, *scene_name, *query_name);
+      ROS_INFO("Loaded %d trajectories", (int)planning_results.size());
+
+      // animate each trajectory
+      std::vector<moveit_warehouse::RobotTrajectoryWithMetadata>::iterator traj_w_mdata = planning_results.begin();
+      for(; traj_w_mdata!=planning_results.end(); ++traj_w_mdata)
+      {
+        moveit_msgs::RobotTrajectory rt_msg;
+        rt_msg = static_cast<const moveit_msgs::RobotTrajectory&>(**traj_w_mdata);
+        //date and time based filename
+        boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+        std::string time_as_string = boost::posix_time::to_simple_string(now);
+
+        // create trajectory ID
+        std::string trajectory_id = time_as_string;
+        std::replace(trajectory_id.begin(), trajectory_id.end(), '/','_');
+        std::replace(trajectory_id.begin(), trajectory_id.end(), '-','_');
+        std::replace(trajectory_id.begin(), trajectory_id.end(), ' ','_');
+        std::replace(trajectory_id.begin(), trajectory_id.end(), ':','_');
+
+        // save into lookup
+        put( trajectory_id, ps_msg );
+        put( trajectory_id, mpr_msg );
+        put( trajectory_id, rt_msg );
+
+        sleep(1);
+      }
+    }
+  }
 }
 
 void TrajectoryVideoLookup::loadFromBag(const std::string& bag_filepath)
@@ -289,30 +392,21 @@ void TrajectoryVideoLookup::saveToBag(const std::string& bag_filepath)
 
 bool TrajectoryVideoLookup::openBag(const std::string& bagpath, const rosbag::bagmode::BagMode bagmode, rosbag::Bag& bag)
 {
-  boostfs::path path(bagpath);
-  if(boostfs::is_directory(path))
+  boost::filesystem::path path(bagpath);
+  if(boost::filesystem::is_directory(path))
   {
     // check for default bag file name "video_lookup.bag"
     path = path / "video_lookup.bag";
-    if( boostfs::exists( path ) )
-    {
-      // proceed to read
-      bag.open( path.string(), bagmode );
-      return true;
-    }
-    else
-    {
-      // no bag file to read
-      ROS_INFO("No bag file to read found at %s. Is there a video_lookup.bag file provided?", path.string().c_str());
-    }
+    bag.open( path.string(), bagmode );
+    return true;
   }
   else
   {
     // check if a bag file
-    if( path.extension().string() == ".bag" )
+    if( path.extension().c_str() == ".bag" )
     {
       // is it a bag file?
-      if( boostfs::exists( path ) || bagmode==rosbag::bagmode::Write )
+      if( boost::filesystem::exists( path ) || bagmode==rosbag::bagmode::Write )
       {
         // proceed to read
         bag.open(path.string(), bagmode);
@@ -327,7 +421,7 @@ bool TrajectoryVideoLookup::openBag(const std::string& bagpath, const rosbag::ba
     else
     {
       // can't read this file
-      ROS_INFO("Provided file is not a bag: %s", path.extension().string().c_str() );
+      ROS_INFO("Provided file is not a bag: %s", path.extension().c_str() );
     }
   }
   return false;

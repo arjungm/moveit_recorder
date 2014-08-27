@@ -14,6 +14,7 @@
 #include <moveit_msgs/PlanningScene.h>
 #include <moveit_msgs/MotionPlanRequest.h>
 #include <moveit_msgs/RobotTrajectory.h>
+#include <view_controller_msgs/CameraPlacement.h>
 #include <std_msgs/String.h>
 
 struct TrajectoryVideoEntry
@@ -32,12 +33,14 @@ struct TrajectoryVideoLookupEntry
   moveit_msgs::PlanningScene ps;
   moveit_msgs::MotionPlanRequest mpr;
   moveit_msgs::RobotTrajectory rt;
+  std::vector<view_controller_msgs::CameraPlacement> views;
   VideoList videos;
 
   iterator begin();
   iterator end();
   void addVideoFile(const std::string& name, const std::string& file);
   void addVideoURL(const std::string& name, const std::string& url);
+  void addView(const view_controller_msgs::CameraPlacement& view);
 };
 
 class TrajectoryVideoLookup
@@ -48,12 +51,15 @@ class TrajectoryVideoLookup
     typedef TrajectoryHashtable::const_iterator const_iterator;
     TrajectoryVideoLookup();
     ~TrajectoryVideoLookup();
+
+    void initializeFromWarehouse(const std::string& host, const size_t port);
     
     bool hasEntry(const std::string& tkey, TrajectoryHashtable::iterator& got);
     void createEntry(const std::string& tkey, TrajectoryHashtable::iterator& got);
     void put(const std::string& tkey, moveit_msgs::PlanningScene ps);
     void put(const std::string& tkey, moveit_msgs::MotionPlanRequest mpr );
     void put(const std::string& tkey, moveit_msgs::RobotTrajectory rt);
+    void put(const std::string& tkey, view_controller_msgs::CameraPlacement view);
     void put(const std::string& tkey, TrajectoryVideoEntry vid);
     void putVideoFile(const std::string& tkey, const std::string& vkey, const std::string& file);
     void putVideoURL(const std::string& tkey, const std::string& vkey, const std::string& url);
@@ -67,14 +73,14 @@ class TrajectoryVideoLookup
 
     void loadFromBag(const std::string& bag_filepath);
     void saveToBag(const std::string& bag_filepath);
-    void parseBagFile(rosbag::Bag& bag);
-    void writeBagFile(rosbag::Bag& bag);
-    bool openBag(const std::string& bagpath, const rosbag::bagmode::BagMode bagmode, rosbag::Bag& bag);
 
     iterator begin() { return table_.begin(); }
     iterator end() { return table_.end(); }
   
   protected:
+    bool openBag(const std::string& bagpath, const rosbag::bagmode::BagMode bagmode, rosbag::Bag& bag);
+    void parseBagFile(rosbag::Bag& bag);
+    void writeBagFile(rosbag::Bag& bag);
     
   private:
     TrajectoryHashtable table_;
