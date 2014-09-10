@@ -70,6 +70,7 @@ class TrajectoryVideoLookup
     moveit_msgs::RobotTrajectory getRobotTrajectory(const std::string& tkey);
     TrajectoryVideoLookupEntry::VideoList getVideos(const std::string& tkey);
     TrajectoryVideoEntry getNamedVideo(const std::string& tkey, const std::string& vkey);
+    std::string getVideoFile(const std::string& tkey, const std::string& vkey);
 
     void loadFromBag(const std::string& bag_filepath);
     void saveToBag(const std::string& bag_filepath);

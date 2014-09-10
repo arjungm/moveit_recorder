@@ -167,6 +167,18 @@ TrajectoryVideoEntry TrajectoryVideoLookup::getNamedVideo(const std::string& tke
     if(iter->name == vkey)
       return *iter;
   }
+  return *iter;
+}
+
+std::string TrajectoryVideoLookup::getVideoFile(const std::string& tkey, const std::string& vkey)
+{
+  TrajectoryVideoLookupEntry::iterator iter = table_[tkey].begin();
+  for( ;iter!=table_[tkey].end();++iter)
+  {
+    if(iter->name == vkey)
+      return iter->file;
+  }
+  return "";
 }
 
 void TrajectoryVideoLookup::parseBagFile(rosbag::Bag& bag)
