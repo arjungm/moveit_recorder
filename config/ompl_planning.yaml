@@ -149,6 +149,16 @@ planner_configs:
     type: geometric::RRTstar
     objective: MinClearance
 
+  RRTStarkConfigDualObjective10:
+    type: geometric::RRTstar
+    objective: DualObjective
+    weight: 10.0
+
+  RRTStarkConfigDualObjective1:
+    type: geometric::RRTstar
+    objective: DualObjective
+    weight: 1.0
+
   BKPIECEkConfigDefault:
     type: geometric::BKPIECE
     range: 100000000
