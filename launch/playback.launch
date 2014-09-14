@@ -8,7 +8,7 @@
 
   <arg name="config" default="true" />
   <arg unless="$(arg config)" name="command_args" default="" />
-  <arg     if="$(arg config)" name="command_args" default="-d $(find moveit_recorder)/launch/recordit.rviz" />
+  <arg     if="$(arg config)" name="command_args" default="-d $(find moveit_recorder)/launch/recordit2.rviz" />
 
   <include file="$(find pr2_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
