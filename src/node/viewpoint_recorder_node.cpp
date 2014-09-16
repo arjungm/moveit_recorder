@@ -37,6 +37,9 @@
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <boost/program_options.hpp>
+#include <boost/tokenizer.hpp>
+#include <map>
+#include <fstream>
 #include <moveit_msgs/PlanningScene.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <view_controller_msgs/CameraPlacement.h>
@@ -92,59 +95,87 @@ int main(int argc, char** argv)
 
     TrajectoryVideoLookup video_lookup_table;
     video_lookup_table.initializeFromWarehouse(host,port);
+
+    std::map<std::string, std::string> map_goal_to_base; // all bases files <- iterate and fill
+    // read all bases files, and map their goal to the base position name
+    boost::filesystem::path save_directory(save_dir);
+    boost::filesystem::directory_iterator dir_it( save_directory );
+    boost::filesystem::directory_iterator end_it;
+    while( dir_it != end_it )
+    {
+      if (boost::filesystem::is_regular_file(*dir_it) && dir_it->path().extension() == "bases")
+      {
+        // read file and add to map
+        std::ifstream file( dir_it->path().string().c_str() );
+        std::string line;
+        while(getline(file, line))
+        {
+          std::vector<std::string> tokens;
+          boost::tokenizer<> tok(line);
+          for( boost::tokenizer<>::iterator tok_it=tok.begin(); tok_it!=tok.end(); ++tok_it)
+            tokens.push_back( *tok_it );
+          assert(tokens.size()==3);
+          map_goal_to_base[tokens[1]]=tokens[2];
+        }
+      }
+    }
+    
+    // use this to speed up vpr
+    typedef std::map<std::string, std::vector<view_controller_msgs::CameraPlacement> > BaseViewsMap;
+    BaseViewsMap bvmap;
     
     // pubs and subs
     ros::Subscriber cam_sub = node_handle.subscribe(camera_placement_topic,1,recordViewpointCallback);
     ros::Publisher scene_pub = node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic,1);
     ros::Publisher traj_pub = node_handle.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1);
-    
+
     // block til other nodes are ready
     utils::rostopic::waitOnSubscribersToTopic( scene_pub, planning_scene_topic );
     utils::rostopic::waitOnSubscribersToTopic( traj_pub, display_traj_topic );
     utils::rostopic::waitOnPublishersToTopic( cam_sub, camera_placement_topic );
-  
+
     std::vector<view_controller_msgs::CameraPlacement> last_saved_views;
     std::vector<view_controller_msgs::CameraPlacement> current_views;
     TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
-    
+
     while(ros::ok() && traj_it!=video_lookup_table.end())
     {
-      // visualize next
-      scene_pub.publish(traj_it->second.ps);
-      moveit_msgs::DisplayTrajectory display_trajectory;
-      display_trajectory.trajectory_start = traj_it->second.mpr.start_state;
-      display_trajectory.trajectory.push_back(traj_it->second.rt);
-      traj_pub.publish(display_trajectory);
-
-      ros::spinOnce();
-      usleep(1000);
-
-      // use non blocking keygrab
-      int c = recorder_utils::getch();
-      if(c=='n')
+      std::string base_name = map_goal_to_base[traj_it->second.mpr.goal_constraints[0].name];
+      BaseViewsMap::iterator got = bvmap.find(base_name);
+      if( got!=bvmap.end() )
       {
-        if(current_views.size()!=0)
-          last_saved_views = current_views;
-        for(int i=0; i<last_saved_views.size();++i)
-          video_lookup_table.put(traj_it->first, last_saved_views[i]);
-        ROS_INFO("Associating %d views to trajectory id \"%s\"", (int)last_saved_views.size(), traj_it->first.c_str());
-        
-        // next traj
+        //cached copy
+        ROS_INFO("Found views for traj:\"%s\" with base:\"%s\"", traj_it->first.c_str(), base_name.c_str());
+        for(size_t i=0; i<got->second.size(); ++i)
+          video_lookup_table.put(traj_it->first, got->second[i]);
+        ++traj_it;
+      }
+      else
+      {
+        //not cached
+        ROS_INFO("No views found for traj:\"%s\", prompting...", traj_it->first.c_str());
+        // visualize next
+        scene_pub.publish(traj_it->second.ps);
+        moveit_msgs::DisplayTrajectory display_trajectory;
+        display_trajectory.trajectory_start = traj_it->second.mpr.start_state;
+        display_trajectory.trajectory.push_back(traj_it->second.rt);
+        traj_pub.publish(display_trajectory);
+        // block til done
         current_views.clear();
-        traj_it++;
-      }
-      else if(c=='a')
-      {
-        ros::spinOnce();
-        usleep(1000);
-        current_views.push_back(last_recorded_msg);
-        ROS_INFO("Adding view. %d so far", (int)current_views.size());
-      }
-      else if(c=='x')
-      {
-        video_lookup_table.saveToBag(save_dir);
-        ROS_INFO("Prematurely terminated!");
-        ros::shutdown();
+        int c = recorder_utils::getch();
+        while(c!='n')
+        {
+          ros::spinOnce();
+          usleep(1000);
+          if(c=='a')
+            current_views.push_back(last_recorded_msg);
+          c = recorder_utils::getch();
+        }
+        ROS_INFO("Added %d views",(int)current_views.size());
+        //cache and add
+        bvmap[base_name]=current_views;
+        for(size_t i=0; i<current_views.size(); ++i)
+          video_lookup_table.put(traj_it->first, current_views[i]);
       }
     }
     video_lookup_table.saveToBag(save_dir);

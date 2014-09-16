@@ -47,7 +47,7 @@ SceneRobotControl::SceneRobotControl(ros::NodeHandle nh,
     const std::string& from_marker_topic,
     const std::string& from_marker_pose_topic,
     const std::string& to_marker_topic,
-    const std::string& query_save_location)
+    const std::string& save_location)
 : node_handle_(nh), 
   is_scene_initialized_(false), 
   planning_scene_topic_(planning_scene_topic),
@@ -56,7 +56,7 @@ SceneRobotControl::SceneRobotControl(ros::NodeHandle nh,
   to_marker_topic_(to_marker_topic),
   query_num_(0),
   base_num_(1),
-  query_file_location_(query_save_location)
+  save_location_(save_location)
 {
   // publishers
   planning_scene_publisher_ = node_handle_.advertise<moveit_msgs::PlanningScene>(planning_scene_topic_,1);
@@ -251,11 +251,12 @@ void SceneRobotControl::getControlMessage(int dir)
     }
     case 'w':
     {
-      boost::filesystem::path query_filepath( query_file_location_ );
-      query_filepath = query_filepath / current_scene_.name;
-      std::string query_file = boost::str( boost::format( "%s.queries" ) % query_filepath.string() ) ;
-      std::string bases_file = boost::str( boost::format( "%s.bases" ) % query_filepath.string() ) ;
+      boost::filesystem::path filepath( save_location_ );
+
+      std::string query_file = boost::str( boost::format( "%s/queries/%s.queries" ) % filepath.string() % current_scene_.name ) ;
+      std::string bases_file = boost::str( boost::format( "%s/bases/%s.bases" ) % filepath.string() % current_scene_.name) ;
       ROS_INFO("[Write] Writing queries to file: %s", query_file.c_str());
+      ROS_INFO("[Write] Writing bases to file: %s", bases_file.c_str());
       
       // write out to file the query locations (this saves the joint positions and poses for planning)
       writePositionsToFile( query_file, current_scene_.name, query_position_names_, query_positions_);
@@ -279,6 +280,7 @@ void SceneRobotControl::getControlMessage(int dir)
     {
       ROS_INFO("[Base] Position marked");
       base_num_++;
+      break;
     }
     default:
       ROS_INFO("[] Unknown command");

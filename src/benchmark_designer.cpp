@@ -87,7 +87,7 @@ int main(int argc, char** argv)
     std::string from_marker_topic = get_option(vm, "from_marker_topic", "from_marker_state");
     std::string from_marker_pose_topic = get_option(vm, "from_marker_pose_topic", "from_marker_pose");
     std::string to_marker_topic = get_option(vm, "to_marker_topic", "to_marker_state");
-    std::string query_save_location = get_option(vm, "save_dir", "/tmp/");
+    std::string save_location = get_option(vm, "save_dir", "/tmp/");
 
     // initialize the scene and control parser
     SceneRobotControl brc(node_handle, 
@@ -95,7 +95,7 @@ int main(int argc, char** argv)
                          from_marker_topic,
                          from_marker_pose_topic,
                          to_marker_topic,
-                         query_save_location);
+                         save_location);
     brc.waitForScene();
     
     // spin and catch results

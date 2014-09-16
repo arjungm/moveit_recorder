@@ -119,7 +119,7 @@ class SceneRobotControl
     std::string from_marker_pose_topic_;
     std::string to_marker_topic_;
 
-    std::string query_file_location_;
+    std::string save_location_;
 
     bool is_scene_initialized_;
 
