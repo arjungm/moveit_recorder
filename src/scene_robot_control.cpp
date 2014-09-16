@@ -38,6 +38,7 @@
 #include <moveit/collision_detection/collision_common.h>
 #include "moveit_recorder/scene_robot_control.h"
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
 
@@ -54,6 +55,7 @@ SceneRobotControl::SceneRobotControl(ros::NodeHandle nh,
   from_marker_pose_topic_(from_marker_pose_topic),
   to_marker_topic_(to_marker_topic),
   query_num_(0),
+  base_num_(1),
   query_file_location_(query_save_location)
 {
   // publishers
@@ -165,6 +167,24 @@ void SceneRobotControl::writePosesToFile(const std::string& filepath,
   }
   file.close();
 }
+      
+      
+void SceneRobotControl::writeBasesToFile( const std::string& filepath,
+                                          const std::string& scene_name,
+                                          const std::vector<std::string>& position_names,
+                                          const std::vector<std::string>& pose_names,
+                                          const std::vector<std::string>& base_names)
+{
+  std::ofstream file;
+  file.open(filepath.c_str(), std::ios::out | std::ios::app);
+  
+  assert( position_names.size() == base_names.size() );
+
+  for(size_t i=0; i<position_names.size(); ++i)
+    file << boost::str(boost::format( "%s %s %s\n" ) % position_names[i] % pose_names[i] % base_names[i]);
+
+  file.close();
+}
 
 void SceneRobotControl::getControlMessage(int dir)
 {
@@ -200,22 +220,14 @@ void SceneRobotControl::getControlMessage(int dir)
     case 's':
     {
       ROS_INFO("[Save] %d joint positions and Pose saved so far", (int)(2*(++query_num_)));
-
-      std::stringstream start_prefix_ss;
-      start_prefix_ss << current_scene_.name;
-      start_prefix_ss << ".start.";
-      start_prefix_ss << query_num_;
-      query_position_names_.push_back( start_prefix_ss.str() );
       
+      query_position_names_.push_back( boost::str(boost::format("%s.%s.%d") % current_scene_.name % "start" % query_num_) );
       query_positions_.push_back(current_state_);
-      
-      std::stringstream goal_prefix_ss;
-      goal_prefix_ss << current_scene_.name;
-      goal_prefix_ss << ".goal.";
-      goal_prefix_ss << query_num_;
-      query_6dofpose_names_.push_back( goal_prefix_ss.str() );
 
+      query_6dofpose_names_.push_back( boost::str(boost::format("%s.%s.%d") % current_scene_.name % "goal" % query_num_) );
       query_6dofposes_.push_back(current_pose_);
+
+      query_basepose_names_.push_back( boost::str(boost::format("%s.%s.%d") % current_scene_.name % "base" % base_num_) );
 
       break;
     }
@@ -241,12 +253,14 @@ void SceneRobotControl::getControlMessage(int dir)
     {
       boost::filesystem::path query_filepath( query_file_location_ );
       query_filepath = query_filepath / current_scene_.name;
-      std::string query_file = query_filepath.string() + ".queries";
+      std::string query_file = boost::str( boost::format( "%s.queries" ) % query_filepath.string() ) ;
+      std::string bases_file = boost::str( boost::format( "%s.bases" ) % query_filepath.string() ) ;
       ROS_INFO("[Write] Writing queries to file: %s", query_file.c_str());
       
       // write out to file the query locations (this saves the joint positions and poses for planning)
       writePositionsToFile( query_file, current_scene_.name, query_position_names_, query_positions_);
       writePosesToFile(     query_file, current_scene_.name, query_6dofpose_names_, query_6dofposes_);
+      writeBasesToFile(     bases_file, current_scene_.name, query_position_names_, query_6dofpose_names_, query_basepose_names_);
       break;
     }
     case 'r':
@@ -260,6 +274,11 @@ void SceneRobotControl::getControlMessage(int dir)
       ROS_INFO("[Quit] Shutting down");
       ros::shutdown();
       break;
+    }
+    case 'b':
+    {
+      ROS_INFO("[Base] Position marked");
+      base_num_++;
     }
     default:
       ROS_INFO("[] Unknown command");

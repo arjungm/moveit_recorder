@@ -89,6 +89,11 @@ class SceneRobotControl
                           const std::string& scene_name,
                           const std::vector<std::string>& names,
                           const std::vector<geometry_msgs::Pose>& poses);
+    void writeBasesToFile( const std::string& filepath,
+                           const std::string& scene_name,
+                           const std::vector<std::string>& position_names,
+                           const std::vector<std::string>& pose_names,
+                           const std::vector<std::string>& base_names);
     
   private:
     robot_model_loader::RobotModelLoaderPtr robot_model_loader_;
@@ -119,8 +124,10 @@ class SceneRobotControl
     bool is_scene_initialized_;
 
     size_t query_num_;
+    size_t base_num_;
     std::vector<std::string> query_position_names_;
     std::vector<std::string> query_6dofpose_names_;
+    std::vector<std::string> query_basepose_names_;
     std::vector<moveit_msgs::RobotState> query_positions_;
     std::vector<geometry_msgs::Pose> query_6dofposes_;
 };
