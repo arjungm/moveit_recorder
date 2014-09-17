@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 
     std::vector<view_controller_msgs::CameraPlacement> last_saved_views;
     std::vector<view_controller_msgs::CameraPlacement> current_views;
-    //TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
+    TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
 
     while(ros::ok() && traj_it!=video_lookup_table.end())
     {
