@@ -47,6 +47,7 @@
 #include <moveit_recorder/utils.h>
 
 #include "moveit_recorder/trajectory_video_lookup.h"
+#include "moveit_recorder/trajectory_retimer.h"
 
 static view_controller_msgs::CameraPlacement last_recorded_msg;
 
@@ -95,7 +96,7 @@ int main(int argc, char** argv)
 
     TrajectoryVideoLookup video_lookup_table;
     video_lookup_table.initializeFromWarehouse(host,port);
-
+    
     std::map<std::string, std::string> map_goal_to_base; // all bases files <- iterate and fill
     // read all bases files, and map their goal to the base position name
     boost::filesystem::path save_directory(save_dir);
@@ -129,14 +130,13 @@ int main(int argc, char** argv)
     ros::Publisher scene_pub = node_handle.advertise<moveit_msgs::PlanningScene>(planning_scene_topic,1);
     ros::Publisher traj_pub = node_handle.advertise<moveit_msgs::DisplayTrajectory>(display_traj_topic, 1);
 
-    // block til other nodes are ready
     utils::rostopic::waitOnSubscribersToTopic( scene_pub, planning_scene_topic );
     utils::rostopic::waitOnSubscribersToTopic( traj_pub, display_traj_topic );
     utils::rostopic::waitOnPublishersToTopic( cam_sub, camera_placement_topic );
 
     std::vector<view_controller_msgs::CameraPlacement> last_saved_views;
     std::vector<view_controller_msgs::CameraPlacement> current_views;
-    TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
+    //TrajectoryVideoLookup::iterator traj_it = video_lookup_table.begin();
 
     while(ros::ok() && traj_it!=video_lookup_table.end())
     {
