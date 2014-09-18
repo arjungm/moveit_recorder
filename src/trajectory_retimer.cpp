@@ -37,6 +37,12 @@
 #include <moveit/robot_state/conversions.h>
 #include <moveit_recorder/trajectory_retimer.h>
 
+TrajectoryRetimer::TrajectoryRetimer(std::string robot_desc) : traj_retimer_(),
+   psm_(robot_desc),
+   ps_(psm_.getPlanningScene())
+{
+}
+
 TrajectoryRetimer::TrajectoryRetimer(std::string robot_desc, std::string group_name) : traj_retimer_(),
    psm_(robot_desc),
    ps_(psm_.getPlanningScene()),
@@ -50,6 +56,7 @@ void TrajectoryRetimer::configure(const moveit_msgs::PlanningScene& ps_msg,
                              const moveit_msgs::MotionPlanRequest& mpr_msg)
 {
   ps_->setPlanningSceneMsg(ps_msg);
+  m_group_name = mpr_msg.group_name;
   rt_ = boost::make_shared<robot_trajectory::RobotTrajectory>(ps_->getRobotModel(), m_group_name);
   reference_state_ = boost::make_shared<moveit::core::RobotState>(ps_->getRobotModel());
   reference_state_->setVariableValues(mpr_msg.start_state.joint_state);
@@ -62,6 +69,17 @@ bool TrajectoryRetimer::retime(moveit_msgs::RobotTrajectory& rt_msg)
   rt_->getRobotTrajectoryMsg(rt_msg);
   return success_retime;
 }
+
+planning_scene::PlanningScenePtr TrajectoryRetimer::getPlanningScene()
+{
+  return ps_;
+}
+
+robot_trajectory::RobotTrajectoryPtr TrajectoryRetimer::getRobotTrajectory()
+{
+  return rt_;
+}
+
 
 void TrajectoryRetimer::addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_msg)
 {

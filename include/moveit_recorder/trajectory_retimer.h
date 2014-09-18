@@ -51,6 +51,7 @@
 class TrajectoryRetimer
 {
   public:
+    TrajectoryRetimer(std::string robot_desc);
     TrajectoryRetimer(std::string robot_desc, std::string group_name);
     ~TrajectoryRetimer();
     void configure(const moveit_msgs::PlanningScene& ps_msg,
@@ -62,6 +63,8 @@ class TrajectoryRetimer
 
     moveit_msgs::RobotState getGoalState(const moveit_msgs::RobotTrajectory& rt_msg);
     moveit_msgs::RobotState getStartState(const moveit_msgs::RobotTrajectory& rt_msg);
+    planning_scene::PlanningScenePtr getPlanningScene();
+    robot_trajectory::RobotTrajectoryPtr getRobotTrajectory();
 
   private:
     std::string m_group_name;
