@@ -133,7 +133,7 @@ int main(int argc, char** argv)
       
       // post process trajectory (Add timing, add pauses to start and goal states)
       moveit_msgs::RobotTrajectory post_processed_rt = traj_it->second.rt;
-      TrajectoryRetimer retimer( "robot_description", traj_it->second.mpr.group_name );
+      TrajectoryRetimer retimer( "robot_description");
       retimer.configure(traj_it->second.ps, traj_it->second.mpr);
       bool result = retimer.retime(post_processed_rt);
       retimer.addTimeToStartandGoal(post_processed_rt);
@@ -165,7 +165,19 @@ int main(int argc, char** argv)
         // view specific
         req.camera_placement = view_msg;
         req.filepath = (storage_dir/filename).string();
-
+        
+        // skip video if it exists
+        TrajectoryVideoLookupEntry::iterator got_video;
+        if(video_lookup_table.hasVideoFile(traj_it->first, view_id, got_video))
+        {
+          boost::filesystem::path existing_video_path(got_video->file);
+          if( boost::filesystem::exists( existing_video_path ) )
+          {
+            ROS_WARN("Video \'%s\' is already created for trajectory \'%s\'. Skipping.", view_id.c_str(), traj_it->first.c_str());
+            continue;
+          }
+        }
+        
         video_lookup_table.putVideoFile( traj_it->first, view_id, req.filepath );
 
         recorder.record(req);
