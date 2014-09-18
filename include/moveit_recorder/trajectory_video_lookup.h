@@ -63,6 +63,7 @@ class TrajectoryVideoLookup
     void put(const std::string& tkey, TrajectoryVideoEntry vid);
     void putVideoFile(const std::string& tkey, const std::string& vkey, const std::string& file);
     void putVideoURL(const std::string& tkey, const std::string& vkey, const std::string& url);
+    bool hasVideoFile(const std::string& tkey, const std::string& vkey, TrajectoryVideoLookupEntry::iterator& got);
 
     TrajectoryVideoLookupEntry get(const std::string& tkey);
     moveit_msgs::PlanningScene getPlanningScene(const std::string& tkey);

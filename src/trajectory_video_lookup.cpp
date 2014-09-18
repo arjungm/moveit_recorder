@@ -170,6 +170,17 @@ TrajectoryVideoEntry TrajectoryVideoLookup::getNamedVideo(const std::string& tke
   return *iter;
 }
 
+bool TrajectoryVideoLookup::hasVideoFile(const std::string& tkey, const std::string& vkey, TrajectoryVideoLookupEntry::iterator& got)
+{
+  TrajectoryVideoLookupEntry::iterator iter = table_[tkey].begin();
+  for(; iter!=table_[tkey].end();++iter)
+  {
+    if(iter->name == vkey)
+      return true;
+  }
+  return false;
+}
+
 std::string TrajectoryVideoLookup::getVideoFile(const std::string& tkey, const std::string& vkey)
 {
   TrajectoryVideoLookupEntry::iterator iter = table_[tkey].begin();
