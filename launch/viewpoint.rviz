@@ -493,7 +493,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-        Loop Animation: true
+        Loop Animation: false
         Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: true
