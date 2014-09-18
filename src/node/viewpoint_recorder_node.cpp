@@ -38,6 +38,7 @@
 #include <rosbag/bag.h>
 #include <boost/program_options.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 #include <map>
 #include <fstream>
 #include <moveit_msgs/PlanningScene.h>
@@ -73,6 +74,7 @@ int main(int argc, char** argv)
     ("planning_scene_topic",boost::program_options::value<std::string>(), "Topic for publishing the planning scene for recording")
     ("display_traj_topic",boost::program_options::value<std::string>(), "Topic for publishing the trajectory for recorder")
     ("camera_topic",boost::program_options::value<std::string>(), "Topic for publishing to the camera position")
+    ("base_dir", boost::program_options::value<std::string>(), "Directory to read the view information")
     ("save_dir", boost::program_options::value<std::string>(), "Directory to store the recorded bagfile of viewpoints");
 
   boost::program_options::variables_map vm;
@@ -87,43 +89,50 @@ int main(int argc, char** argv)
   }
   try
   {
-    std::string save_dir = vm.count("save_dir") ? vm["save_dir"].as<std::string>() : "/tmp/views.bag";
+    std::string save_dir = vm.count("save_dir") ? vm["save_dir"].as<std::string>() : "/";
+    std::string base_dir = vm.count("base_dir") ? vm["base_dir"].as<std::string>() : "/";
     std::string host = vm.count("host") ? vm["host"].as<std::string>() : "";
     size_t port = vm.count("port") ? vm["port"].as<std::size_t>() : 0;
     std::string planning_scene_topic =utils:: get_option(vm, "planning_scene_topic", "planning_scene");
     std::string display_traj_topic = utils::get_option(vm, "display_traj_topic", "/move_group/display_planned_path");
     std::string camera_placement_topic = utils::get_option(vm, "camera_topic", "/rviz/current_camera_placement");
 
-    TrajectoryVideoLookup video_lookup_table;
-    video_lookup_table.initializeFromWarehouse(host,port);
-    
     std::map<std::string, std::string> map_goal_to_base; // all bases files <- iterate and fill
     // read all bases files, and map their goal to the base position name
     boost::filesystem::path save_directory(save_dir);
-    boost::filesystem::directory_iterator dir_it( save_directory );
+    boost::filesystem::path base_directory(base_dir);
+    boost::filesystem::directory_iterator dir_it( base_directory );
     boost::filesystem::directory_iterator end_it;
     while( dir_it != end_it )
     {
-      if (boost::filesystem::is_regular_file(*dir_it) && dir_it->path().extension() == "bases")
+      bool is_file = boost::filesystem::is_regular_file(*dir_it);
+      std::string ext = dir_it->path().extension().string();
+      if (is_file && ext==".bases")
       {
+        ROS_INFO("Reading bases from %s",dir_it->path().string().c_str());
         // read file and add to map
         std::ifstream file( dir_it->path().string().c_str() );
         std::string line;
         while(getline(file, line))
         {
           std::vector<std::string> tokens;
-          boost::tokenizer<> tok(line);
-          for( boost::tokenizer<>::iterator tok_it=tok.begin(); tok_it!=tok.end(); ++tok_it)
-            tokens.push_back( *tok_it );
+          boost::split(tokens, line, boost::is_any_of(" "), boost::token_compress_on);
           assert(tokens.size()==3);
           map_goal_to_base[tokens[1]]=tokens[2];
         }
       }
+      else
+        ROS_WARN("Skipping %s with extension %s (%s).", is_file?"file":"non-file",ext.c_str(),dir_it->path().string().c_str());
+      ++dir_it;
     }
+    ROS_INFO("Completed reading goal-to-base information. %d plans found.", (int)map_goal_to_base.size());
+    
+    TrajectoryVideoLookup video_lookup_table;
+    video_lookup_table.initializeFromWarehouse(host,port);
     
     // use this to speed up vpr
     typedef std::map<std::string, std::vector<view_controller_msgs::CameraPlacement> > BaseViewsMap;
-    BaseViewsMap bvmap;
+    BaseViewsMap bvmap; //base-to-view
     
     // pubs and subs
     ros::Subscriber cam_sub = node_handle.subscribe(camera_placement_topic,1,recordViewpointCallback);
@@ -168,18 +177,19 @@ int main(int argc, char** argv)
           ros::spinOnce();
           usleep(1000);
           if(c=='a')
+          {
             current_views.push_back(last_recorded_msg);
+            ROS_INFO("Added %d views so far.", (int)current_views.size());
+          }
           c = recorder_utils::getch();
         }
         ROS_INFO("Added %d views",(int)current_views.size());
         //cache and add
         bvmap[base_name]=current_views;
-        for(size_t i=0; i<current_views.size(); ++i)
-          video_lookup_table.put(traj_it->first, current_views[i]);
       }
     }
     video_lookup_table.saveToBag(save_dir);
-    ROS_INFO("Finished grabbing views!");
+    ROS_INFO("Finished grabbing views! %d Unique vantage sets.", (int)bvmap.size());
     ros::shutdown();
   }
   catch(...)
