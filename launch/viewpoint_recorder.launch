@@ -36,9 +36,11 @@
   <arg name="planning_scene_topic" default="planning_scene" />
   <arg name="display_traj_topic" default="display_trajectory" />
   <arg name="camera_topic" default="/rviz/current_camera_placement" />
+  <arg name="base_dir" default="$(find moveit_recorder)/bases" />
 
   <node name="viewpoint_recorder" pkg="moveit_recorder" type="viewpoint_recorder_node" 
     args="--save_dir $(arg save_dir)
+          --base_dir $(arg base_dir) 
           --host $(arg host) 
           --port $(arg port)
           --planning_scene_topic $(arg planning_scene_topic)
