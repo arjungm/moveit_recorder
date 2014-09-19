@@ -89,9 +89,9 @@ void TrajectoryRetimer::addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_m
   const robot_state::RobotState last = rt_->getLastWayPoint();
 
   rt_->setWayPointDurationFromPrevious(0,1); // add 2s to first way point
-  for(int i=0; i<10; i++)
+  for(int i=0; i<5; i++)
     rt_->addPrefixWayPoint(first, 1); // repeat the first waypoint so it visualizes start for 2s
-  for(int i=0; i<10; i++)
+  for(int i=0; i<5; i++)
     rt_->addSuffixWayPoint(last, 1); // repeat the last waypoint for 2s
   
   rt_->getRobotTrajectoryMsg(rt_msg);
