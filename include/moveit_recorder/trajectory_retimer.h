@@ -58,6 +58,8 @@ class TrajectoryRetimer
                    const moveit_msgs::MotionPlanRequest& mpr_msg);
     bool retime(moveit_msgs::RobotTrajectory& traj);
     void addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_msg);
+    void correctRootJointPositions();
+    void zeroRootJointPositions();
     moveit_msgs::RobotTrajectory createDisplayTrajectoryForState( const moveit_msgs::RobotTrajectory& rt_msg, 
                                                                   const size_t index, const size_t num_waypoints);
 
@@ -72,6 +74,7 @@ class TrajectoryRetimer
     planning_scene_monitor::PlanningSceneMonitor psm_;
     planning_scene::PlanningScenePtr ps_;
     robot_trajectory::RobotTrajectoryPtr rt_;
+    moveit_msgs::MotionPlanRequest mpr_;
     moveit::core::RobotStatePtr reference_state_;
 
     trajectory_processing::IterativeParabolicTimeParameterization traj_retimer_;

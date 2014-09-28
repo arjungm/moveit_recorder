@@ -60,6 +60,7 @@ void TrajectoryRetimer::configure(const moveit_msgs::PlanningScene& ps_msg,
   rt_ = boost::make_shared<robot_trajectory::RobotTrajectory>(ps_->getRobotModel(), m_group_name);
   reference_state_ = boost::make_shared<moveit::core::RobotState>(ps_->getRobotModel());
   reference_state_->setVariableValues(mpr_msg.start_state.joint_state);
+  mpr_ = mpr_msg;
 }
 
 bool TrajectoryRetimer::retime(moveit_msgs::RobotTrajectory& rt_msg)
@@ -80,6 +81,37 @@ robot_trajectory::RobotTrajectoryPtr TrajectoryRetimer::getRobotTrajectory()
   return rt_;
 }
 
+void TrajectoryRetimer::correctRootJointPositions()
+{
+  // correct the start state
+  robot_state::RobotStatePtr start = rt_->getFirstWayPointPtr();
+  moveit::core::robotStateMsgToRobotState( mpr_.start_state, *start);
+  start->update();
+  // correct the variables of all other points in the trajectory
+  std::vector<std::string> variables = start->getRobotModel()->getRootJoint()->getVariableNames();
+  for(int t=1; t<rt_->getWayPointCount(); ++t)
+  {
+    robot_state::RobotStatePtr waypoint = rt_->getWayPointPtr(t);
+    for(int v=0; v<variables.size(); ++v)
+      waypoint->setVariablePosition(variables[v], start->getVariablePosition(variables[v]));
+    waypoint->update();
+  }
+}
+
+void TrajectoryRetimer::zeroRootJointPositions()
+{
+  // correct the start state
+  robot_state::RobotStatePtr start = rt_->getFirstWayPointPtr();
+  // correct the variables of all other points in the trajectory
+  std::vector<std::string> variables = start->getRobotModel()->getRootJoint()->getVariableNames();
+  for(int t=0; t<rt_->getWayPointCount(); ++t)
+  {
+    robot_state::RobotStatePtr waypoint = rt_->getWayPointPtr(t);
+    for(int v=0; v<variables.size(); ++v)
+      waypoint->setVariablePosition(variables[v], 0.0);
+    waypoint->update();
+  }
+}
 
 void TrajectoryRetimer::addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_msg)
 {
