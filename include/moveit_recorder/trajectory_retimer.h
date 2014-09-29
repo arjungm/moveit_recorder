@@ -38,6 +38,7 @@
 #define TRAJ_RETIME_UTIL_H
 
 #include <string>
+#include <map>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/planning_scene/planning_scene.h>
@@ -60,6 +61,7 @@ class TrajectoryRetimer
     void addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_msg);
     void correctRootJointPositions();
     void zeroRootJointPositions();
+    std::map<std::string,double> getWorldJointVariables();
     moveit_msgs::RobotTrajectory createDisplayTrajectoryForState( const moveit_msgs::RobotTrajectory& rt_msg, 
                                                                   const size_t index, const size_t num_waypoints);
 

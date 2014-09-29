@@ -113,6 +113,19 @@ void TrajectoryRetimer::zeroRootJointPositions()
   }
 }
 
+std::map<std::string,double> TrajectoryRetimer::getWorldJointVariables()
+{
+  std::map<std::string,double> var_map;
+  // correct the start state
+  robot_state::RobotStatePtr start = rt_->getFirstWayPointPtr();
+  moveit::core::robotStateMsgToRobotState( mpr_.start_state, *start);
+  start->update();
+  std::vector<std::string> variables = start->getRobotModel()->getRootJoint()->getVariableNames();
+  for(int v=0; v<variables.size(); ++v)
+    var_map[ variables[v] ] = start->getVariablePosition(variables[v]);
+  return var_map;
+}
+
 void TrajectoryRetimer::addTimeToStartandGoal(moveit_msgs::RobotTrajectory& rt_msg)
 {
   // modify robot trajectory for longer start and stop visualization.
